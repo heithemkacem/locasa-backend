@@ -1,0 +1,1 @@
+for svc in auth chat hotelna nginx notification socket; do   folder="${svc}-service";   repo="112258145641.dkr.ecr.eu-central-1.amazonaws.com/${svc}:latest";    sudo docker build     --file ./${folder}/Dockerfile     --tag ${repo}     ./${folder};    sudo docker push ${repo}; done
