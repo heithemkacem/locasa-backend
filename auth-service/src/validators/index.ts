@@ -1,142 +1,138 @@
 import Joi from "joi";
 
-// DTO for validating email, password, and name
+// Register DTO
 export const registerValidationSchema = Joi.object({
   email: Joi.string().email().required().messages({
-    "string.empty": "Email is required.",
-    "string.email": "Please enter a valid email address.",
-    "any.required": "Email is required.",
+    "string.empty": "backend.email_required",
+    "string.email": "backend.email_invalid",
+    "any.required": "backend.email_required",
   }),
   password: Joi.string().min(8).required().messages({
-    "string.empty": "Password is required.",
-    "string.min": "Password must be at least 8 characters long.",
-    "any.required": "Password is required.",
+    "string.empty": "backend.password_required",
+    "string.min": "backend.password_min_length",
+    "any.required": "backend.password_required",
   }),
   name: Joi.string().min(3).max(50).required().messages({
-    "string.empty": "Name is required.",
-    "string.min": "Name must be at least 3 characters long.",
-    "string.max": "Name cannot exceed 50 characters.",
-    "any.required": "Name is required.",
+    "string.empty": "backend.name_required",
+    "string.min": "backend.name_min_length",
+    "string.max": "backend.name_max_length",
+    "any.required": "backend.name_required",
   }),
-  type: Joi.string()
-    .valid("client", "vendor") // Add more roles as needed
-    .messages({
-      "any.only": '"type" must be one of ["user", "admin"]',
-      "any.required": "Role is required.",
-    }),
+  type: Joi.string().valid("client", "vendor").required().messages({
+    "any.only": "backend.type_invalid",
+    "any.required": "backend.type_required",
+  }),
 }).messages({
-  "object.unknown": "Unexpected field detected in request body.",
+  "object.unknown": "backend.unexpected_field_detectted_in_request_body",
 });
+
+// Login DTO
 export const loginValidationSchema = Joi.object({
   email: Joi.string().email().required().messages({
-    "string.empty": "Email is required.",
-    "string.email": "Please enter a valid email address.",
-    "any.required": "Email is required.",
+    "string.empty": "backend.email_required",
+    "string.email": "backend.email_invalid",
+    "any.required": "backend.email_required",
   }),
   password: Joi.string().min(8).required().messages({
-    "string.empty": "Password is required.",
-    "string.min": "Password must be at least 8 characters long.",
-    "any.required": "Password is required.",
+    "string.empty": "backend.password_required",
+    "string.min": "backend.password_min_length",
+    "any.required": "backend.password_required",
   }),
-  type: Joi.string()
-    .valid("client", "vendor") // Add more roles as needed
-    .messages({
-      "any.only": '"type" must be one of ["user", "admin"]',
-      "any.required": "Role is required.",
-    }),
+  type: Joi.string().valid("client", "vendor").required().messages({
+    "any.only": "backend.type_invalid",
+    "any.required": "backend.type_required",
+  }),
 }).messages({
-  "object.unknown": "Unexpected field detected in request body.",
+  "object.unknown": "backend.unexpected_field_detectted_in_request_body",
 });
+
+// OTP Request Validation
 export const requestBodyValidationSchema = Joi.object({
   email: Joi.string().email().required().messages({
-    "string.empty": "Email is required.",
-    "string.email": "Please enter a valid email address.",
-    "any.required": "Email is required.",
+    "string.empty": "backend.email_required",
+    "string.email": "backend.email_invalid",
+    "any.required": "backend.email_required",
   }),
   otp: Joi.string().length(4).required().messages({
-    "string.empty": "OTP is required.",
-    "string.length": "OTP must be exactly 4 characters long.",
-    "any.required": "OTP is required.",
+    "string.empty": "backend.otp_required",
+    "string.length": "backend.otp_invalid_length",
+    "any.required": "backend.otp_required",
   }),
   type: Joi.string()
     .valid("reset-password", "created-account")
     .required()
     .messages({
-      "string.empty": "Type is required.",
-      "any.only": 'Type must be either "verification" or "reset"',
-      "any.required": "Type is required.",
+      "string.empty": "backend.otp_type_required",
+      "any.only": "backend.otp_type_invalid",
+      "any.required": "backend.otp_type_required",
     }),
-  userType: Joi.string()
-    .valid("client", "vendor") // Add more roles as needed
-    .messages({
-      "any.only": '"type" must be one of ["user", "admin"]',
-      "any.required": "Role is required.",
-    }),
+  userType: Joi.string().valid("client", "vendor").required().messages({
+    "any.only": "backend.type_invalid",
+    "any.required": "backend.type_required",
+  }),
 }).messages({
-  "object.unknown": "Unexpected field detected in request body.",
+  "object.unknown": "backend.unexpected_field_detectted_in_request_body",
 });
+
+// Resend OTP
 export const resendOTP = Joi.object({
   email: Joi.string().email().required().messages({
-    "string.empty": "Email is required.",
-    "string.email": "Please enter a valid email address.",
-    "any.required": "Email is required.",
+    "string.empty": "backend.email_required",
+    "string.email": "backend.email_invalid",
+    "any.required": "backend.email_required",
   }),
-
   type: Joi.string()
     .valid("reset-password", "created-account")
     .required()
     .messages({
-      "string.empty": "Type is required.",
-      "any.only": 'Type must be either "verification" or "reset"',
-      "any.required": "Type is required.",
+      "string.empty": "backend.otp_type_required",
+      "any.only": "backend.otp_type_invalid",
+      "any.required": "backend.otp_type_required",
     }),
-  userType: Joi.string()
-    .valid("client", "vendor") // Add more roles as needed
-    .messages({
-      "any.only": '"type" must be one of ["user", "admin"]',
-      "any.required": "Role is required.",
-    }),
+  userType: Joi.string().valid("client", "vendor").required().messages({
+    "any.only": "backend.type_invalid",
+    "any.required": "backend.type_required",
+  }),
 }).messages({
-  "object.unknown": "Unexpected field detected in request body.",
+  "object.unknown": "backend.unexpected_field_detectted_in_request_body",
 });
 
+// Forget Password
 export const forgetPassword = Joi.object({
   email: Joi.string().email().required().messages({
-    "string.empty": "Email is required.",
-    "string.email": "Please enter a valid email address.",
-    "any.required": "Email is required.",
+    "string.empty": "backend.email_required",
+    "string.email": "backend.email_invalid",
+    "any.required": "backend.email_required",
   }),
-  type: Joi.string()
-    .valid("client", "vendor") // Add more roles as needed
-    .messages({
-      "any.only": '"type" must be one of ["user", "admin"]',
-      "any.required": "Role is required.",
-    }),
+  type: Joi.string().valid("client", "vendor").required().messages({
+    "any.only": "backend.type_invalid",
+    "any.required": "backend.type_required",
+  }),
 }).messages({
-  "object.unknown": "Unexpected field detected in request body.",
+  "object.unknown": "backend.unexpected_field_detectted_in_request_body",
 });
+
+// Reset Password
 export const resetPasswordValidationSchema = Joi.object({
   email: Joi.string().email().required().messages({
-    "string.empty": "Email is required.",
-    "string.email": "Please enter a valid email address.",
-    "any.required": "Email is required.",
+    "string.empty": "backend.email_required",
+    "string.email": "backend.email_invalid",
+    "any.required": "backend.email_required",
   }),
   newPassword: Joi.string().min(8).required().messages({
-    "string.empty": "New password is required.",
-    "string.min": "New password must be at least 8 characters long.",
-    "any.required": "New password is required.",
+    "string.empty": "backend.new_password_required",
+    "string.min": "backend.new_password_min_length",
+    "any.required": "backend.new_password_required",
   }),
-  type: Joi.string()
-    .valid("client", "vendor") // Add more roles as needed
-    .messages({
-      "any.only": '"type" must be one of ["user", "admin"]',
-      "any.required": "Role is required.",
-    }),
+  type: Joi.string().valid("client", "vendor").required().messages({
+    "any.only": "backend.type_invalid",
+    "any.required": "backend.type_required",
+  }),
   otp: Joi.string().length(4).required().messages({
-    "string.empty": "OTP is required.",
-    "string.length": "OTP must be exactly 4 characters long.",
-    "any.required": "OTP is required.",
+    "string.empty": "backend.otp_required",
+    "string.length": "backend.otp_invalid_length",
+    "any.required": "backend.otp_required",
   }),
 }).messages({
-  "object.unknown": "Unexpected field detected in request body.",
+  "object.unknown": "backend.unexpected_field_detectted_in_request_body",
 });

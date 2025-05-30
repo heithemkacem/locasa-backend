@@ -63,17 +63,6 @@ class RabbitMQService {
     );
     console.log("SMS notification request sent");
   }
-  private async shutdown() {
-    try {
-      await this.channel.close();
-      await this.connection.close();
-      console.log("RabbitMQ connection closed gracefully");
-      process.exit(0);
-    } catch (error) {
-      console.error("Error during shutdown:", error);
-      process.exit(1);
-    }
-  }
 }
 
 const getUserDetails = async (userId: string) => {
