@@ -132,6 +132,11 @@ export const resetPasswordValidationSchema = Joi.object({
       "any.only": '"type" must be one of ["user", "admin"]',
       "any.required": "Role is required.",
     }),
+  otp: Joi.string().length(4).required().messages({
+    "string.empty": "OTP is required.",
+    "string.length": "OTP must be exactly 4 characters long.",
+    "any.required": "OTP is required.",
+  }),
 }).messages({
   "object.unknown": "Unexpected field detected in request body.",
 });

@@ -58,6 +58,7 @@ export const register = async (req: Request, res: Response) => {
 
     // Generate OTP
     const otp = generateOTP();
+    console.log(otp, "register");
     const hashedOTP = await bcrypt.hash(otp, saltRounds);
     const otpExpiry = new Date();
     otpExpiry.setMinutes(otpExpiry.getMinutes() + 3);
@@ -71,7 +72,7 @@ export const register = async (req: Request, res: Response) => {
       <p>Dear User,</p>
       <p>Thank you for registering with us. To complete your registration, please use the following One-Time Password (OTP):</p>
       <div style="text-align: center; margin: 30px 0;">
-        <span style="font-size: 28px; font-weight: bold; color: #ED7354;">${otp}</span>
+        <span style="font-size: 28px; font-weight: bold; color: #ED7354;"> ${otp}</span>
       </div>
       <p>This OTP is valid for the next 10 minutes. Please do not share it with anyone.</p>
       <p>If you did not initiate this request, please ignore this email.</p>
@@ -82,7 +83,6 @@ export const register = async (req: Request, res: Response) => {
     </div>
   </div>
 `;
-
     // Send OTP via email
 
     // Save OTP to database

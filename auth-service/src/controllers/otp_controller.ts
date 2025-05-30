@@ -56,7 +56,7 @@ export const forgetPassword = async (req: Request, res: Response) => {
       <p>Dear User,</p>
       <p>We received a request to reset your password. Please use the following One-Time Password (OTP) to proceed:</p>
       <div style="text-align: center; margin: 30px 0;">
-        <span style="font-size: 28px; font-weight: bold; color: #ED7354;">${otp}</span>
+        <span style="font-size: 28px; font-weight: bold; color: #ED7354;"> ${otp}</span>
       </div>
       <p>This OTP is valid for the next 10 minutes. If you did not request a password reset, please ignore this email or contact our support team immediately.</p>
       <p>Stay secure,<br/>The Locasa Team</p>
@@ -88,7 +88,25 @@ export const forgetPassword = async (req: Request, res: Response) => {
 
 export const resetPassword = async (req: Request, res: Response) => {
   try {
-    const { newPassword, email, type } = req.body;
+    const { newPassword, email, type, otp } = req.body;
+    const otpRecord = await OTP.findOne({
+      email,
+      type: "reset-password",
+      userType: type,
+    }).sort({
+      createdAt: -1,
+    });
+    console.log(newPassword, email, type, otp);
+    console.log(otpRecord);
+    if (!otpRecord) {
+      return errorResponse(res, "Invalid OTP or OTP has expired.", 400);
+    }
+
+    const isMatch = await bcrypt.compare(otp, otpRecord.otp);
+    if (!isMatch) {
+      return errorResponse(res, "Invalid OTP.", 400);
+    }
+
     console.log(email, type);
     const profile = await Profile.findOne({ email: email, type: type });
     if (!profile) {
@@ -107,14 +125,11 @@ export const resetPassword = async (req: Request, res: Response) => {
 export const resendOTP = async (req: Request, res: Response) => {
   try {
     const { email, type, userType } = req.body;
-
     if (!["created-account", "reset-password"].includes(type)) {
       return errorResponse(res, "Invalid OTP type.", 400);
     }
-
     // Check for an existing OTP record
     const otpRecord = await OTP.findOne({ email, type, userType });
-
     if (otpRecord) {
       const now = new Date();
       const lastSentTime = otpRecord.createdAt;
@@ -136,6 +151,7 @@ export const resendOTP = async (req: Request, res: Response) => {
 
     // Generate and hash a new OTP
     const otp = generateOTP();
+    console.log(otp, "resend");
     const hashedOTP = await bcrypt.hash(otp, saltRounds);
 
     // Save the new OTP in the database
@@ -150,13 +166,13 @@ export const resendOTP = async (req: Request, res: Response) => {
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #eee; border-radius: 8px; overflow: hidden;">
       <div style="background-color: #ED7354; padding: 20px; text-align: center;">
         <img src="https://ik.imagekit.io/gqfmeowjp/splash-icon.png?updatedAt=1748534501191" alt="Company Logo" style="width: 60px; height: 60px; border-radius: 50%; background: #fff;" />
-        <h2 style="color: #fff; margin-top: 10px;">${type} Verification</h2>
+        <h2 style="color: #fff; margin-top: 10px;">OTP Verification</h2>
       </div>
       <div style="padding: 30px; color: #333;">
         <p>Dear User,</p>
-        <p>Your One-Time Password (OTP) for <strong>${type}</strong> is:</p>
+        <p>Your One-Time Password (OTP)  is:</p>
         <div style="text-align: center; margin: 30px 0;">
-          <span style="font-size: 28px; font-weight: bold; color: #ED7354;">${otp}</span>
+          <span style="font-size: 28px; font-weight: bold; color: #ED7354;"> ${otp}</span>
         </div>
         <p>This OTP is valid for the next 10 minutes. Please do not share it with anyone.</p>
         <p>If you did not initiate this request, please ignore this email.</p>
