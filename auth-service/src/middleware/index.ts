@@ -1,9 +1,9 @@
 import { ErrorRequestHandler } from "express";
-import { ApiError, errorResponse } from "../utils";
+import { ApiError } from "../utils";
 import jwt from "jsonwebtoken";
 import { Request, Response, NextFunction } from "express";
-import { ObjectSchema, string } from "joi";
 import { Profile } from "../database";
+
 export const errorConverter: ErrorRequestHandler = (err, req, res, next) => {
   let error = err;
   if (!(error instanceof ApiError)) {
@@ -14,7 +14,9 @@ export const errorConverter: ErrorRequestHandler = (err, req, res, next) => {
         : 500); // Internal Server Error
     const message =
       error.message ||
-      (statusCode === 400 ? "Bad Request" : "Internal Server Error");
+      (statusCode === 400
+        ? "backend.bad_request"
+        : "backend.internal_server_error");
     error = new ApiError(statusCode, message, false, err.stack.toString());
   }
   next(error);
@@ -24,21 +26,17 @@ export const errorHandler: ErrorRequestHandler = (err, req, res, next) => {
   let { statusCode, message } = err;
   if (process.env.NODE_ENV === "production" && !err.isOperational) {
     statusCode = 500; // Internal Server Error
-    message = "Internal Server Error";
+    message = "backend.internal_server_error";
   }
-
   res.locals.errorMessage = err.message;
-
   const response = {
     code: statusCode,
     message,
     ...(process.env.NODE_ENV === "development" && { stack: err.stack }),
   };
-
   if (process.env.NODE_ENV === "development") {
     console.error(err);
   }
-
   res.status(statusCode).json(response);
   next();
 };
@@ -47,7 +45,13 @@ export const errorHandler: ErrorRequestHandler = (err, req, res, next) => {
 declare global {
   namespace Express {
     interface Request {
-      user?: { id: string };
+      user?: {
+        id: string;
+        email: string;
+        type: "client" | "vendor";
+        name: string;
+        client_id: string;
+      };
     }
   }
 }
@@ -70,10 +74,13 @@ export const verifyToken = (
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as {
       id: string;
+      email: string;
+      type: "client" | "vendor";
+      name: string;
+      client_id: string;
     };
-
-    req.user = { id: decoded.id };
-
+    console.log(decoded);
+    req.user = decoded;
     next();
   } catch (error) {
     console.error("Token verification failed:", error);
@@ -84,15 +91,10 @@ export const verifyToken = (
 export const verifyRole = (...allowedRoles: string[]) => {
   return (req: any, res: any, next: any) => {
     try {
-      // 1. Check if user exists from previous middleware
       if (!req.user) {
         return res.status(403).json({ message: "Authentication required" });
       }
-
-      // 2. Get user role from decoded token
       const userRole = req.user.type;
-
-      // 3. Check if user's role is included in allowed roles
       if (!allowedRoles.includes(userRole)) {
         return res.status(403).json({
           message: `Insufficient permissions. Required roles: ${allowedRoles.join(
@@ -100,7 +102,6 @@ export const verifyRole = (...allowedRoles: string[]) => {
           )}`,
         });
       }
-      console.log("Verify Role Passed");
       next();
     } catch (error) {
       console.log(error);
@@ -113,25 +114,18 @@ export const verifyRole = (...allowedRoles: string[]) => {
 };
 
 export const checkProfileBlocked = async (
-  req: any,
+  req: Request,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    // Assuming the user ID is in req.user (decoded from the token)
-    const profileId = req.user?.profile.id; // This should match the 'id' from your JWT payload
-    // Find the profile by ID
-    const profile = await Profile.findById(profileId);
+    const profile = await Profile.findById(req.user?.id);
     if (!profile) {
       return res.status(404).json({ message: "Profile not found." });
     }
-
-    // Check if the profile is blocked
     if (profile.blocked) {
       return res.status(403).json({ message: "Your account is blocked." });
     }
-
-    // Proceed if profile is not blocked
     next();
   } catch (error) {
     console.error("Error checking profile status:", error);

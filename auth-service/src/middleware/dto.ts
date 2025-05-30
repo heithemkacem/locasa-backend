@@ -17,7 +17,7 @@ export const validateRegister = (req: any, res: any, next: any) => {
     console.log("Validation error:", error);
     return res.status(400).json({
       status: "Failed",
-      message: error.details.map((err) => err.message).join(", "),
+      message: "backend.validation_error",
     });
   }
 
@@ -33,7 +33,7 @@ export const validateLogin = (req: any, res: any, next: any) => {
     console.log("Validation error:", error);
     return res.status(400).json({
       status: "Failed",
-      message: error.details.map((err) => err.message).join(", "),
+      message: "backend.validation_error",
     });
   }
 
@@ -49,7 +49,7 @@ export const validateOTPRequestBody = (req: any, res: any, next: any) => {
     console.log("Validation error:", error);
     return res.status(400).json({
       status: "Failed",
-      message: error.details.map((err) => err.message).join(", "),
+      message: "backend.validation_error",
     });
   }
 
@@ -65,7 +65,7 @@ export const resendOTPRequestBody = (req: any, res: any, next: any) => {
     console.log("Validation error:", error);
     return res.status(400).json({
       status: "Failed",
-      message: error.details.map((err) => err.message).join(", "),
+      message: "backend.validation_error",
     });
   }
 
@@ -82,7 +82,7 @@ export const forgetPasswordRequestBody = (req: any, res: any, next: any) => {
     console.log("Validation error:", error);
     return res.status(400).json({
       status: "Failed",
-      message: error.details.map((err) => err.message).join(", "),
+      message: "backend.validation_error",
     });
   }
 
@@ -98,7 +98,7 @@ export const validateResetPassword = (req: any, res: any, next: any) => {
     console.log("Validation error:", error);
     return res.status(400).json({
       status: "Failed",
-      message: error.details.map((err) => err.message).join(", "),
+      message: "backend.validation_error",
     });
   }
 

@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import jwt from "jsonwebtoken";
+
 import { Profile, IProfile, IClient, Vendor, IVendor } from "../database/index";
 import { Client, OTP } from "../database/index";
 import bcrypt from "bcryptjs";
@@ -10,31 +10,13 @@ import {
   successResponse,
   errorResponse,
 } from "../utils";
-import config from "../config/config";
 import { generateOTP } from "../utils/index";
 import { rabbitMQService } from "../services/RabbitMQService";
 import mongoose from "mongoose";
+import { htmlContentCreateAccount } from "../utils/mails_templates";
+import { createSendToken } from "../utils/jwt/createToken";
 
-const { limit } = config;
-const jwtSecret = config.JWT_SECRET as string;
-const saltRounds = limit ? Number(limit) : 10;
-
-const createSendToken = async (
-  user: IProfile,
-  client: IClient,
-  res: Response
-) => {
-  const { _id, email, type, name } = user;
-  const payload = {
-    id: _id,
-    email,
-    type,
-    name,
-    client_id: client._id,
-  };
-  const token = jwt.sign(payload, jwtSecret, { expiresIn: "30d" });
-  return token;
-};
+const saltRounds = 10;
 
 export const register = async (req: Request, res: Response) => {
   try {
@@ -53,28 +35,6 @@ export const register = async (req: Request, res: Response) => {
     const hashedOTP = await bcrypt.hash(otp, saltRounds);
     const otpExpiry = new Date();
     otpExpiry.setMinutes(otpExpiry.getMinutes() + 3);
-
-    const htmlContent = `
-  <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #eee; border-radius: 8px; overflow: hidden;">
-    <div style="background-color: #ED7354; padding: 20px; text-align: center;">
-      <img src="https://ik.imagekit.io/gqfmeowjp/splash-icon.png?updatedAt=1748534501191" alt="Locasa Logo" style="width: 60px; height: 60px; border-radius: 50%; background: #fff;" />
-      <h2 style="color: #fff; margin-top: 10px;">Account Verification</h2>
-    </div>
-    <div style="padding: 30px; color: #333;">
-      <p>Dear User,</p>
-      <p>Thank you for registering with us. To complete your registration, please use the following One-Time Password (OTP):</p>
-      <div style="text-align: center; margin: 30px 0;">
-        <span style="font-size: 28px; font-weight: bold; color: #ED7354;"> ${otp}</span>
-      </div>
-      <p>This OTP is valid for the next 10 minutes. Please do not share it with anyone.</p>
-      <p>If you did not initiate this request, please ignore this email.</p>
-      <p>Best regards,<br/>The Locasa Team</p>
-    </div>
-    <div style="background-color: #f7f7f7; text-align: center; padding: 15px; font-size: 12px; color: #999;">
-      &copy; ${new Date().getFullYear()} Locasa. All rights reserved.
-    </div>
-  </div>
-`;
 
     await OTP.create({
       email,
@@ -114,7 +74,7 @@ export const register = async (req: Request, res: Response) => {
       await rabbitMQService.sendEmailNotification(
         email,
         "OTP for Account Registration",
-        htmlContent
+        htmlContentCreateAccount(otp)
       );
     } catch (emailError) {
       return errorResponse(res, "backend.otpEmailFailed");
@@ -173,7 +133,7 @@ export const login = async (req: Request, res: Response) => {
     });
     profile.save();
 
-    const token = await createSendToken(profile, user, res);
+    const token = await createSendToken(profile, user);
 
     return successResponse(res, "backend.loginSuccess", {
       token,
@@ -182,6 +142,10 @@ export const login = async (req: Request, res: Response) => {
       name: profile.name,
     });
   } catch (error: any) {
-    return errorResponse(res, error.message || "Server error", 500);
+    return errorResponse(
+      res,
+      error.message || "backend.internal_server_error",
+      500
+    );
   }
 };
