@@ -7,11 +7,7 @@ import { Profile } from "../database";
 export const errorConverter: ErrorRequestHandler = (err, req, res, next) => {
   let error = err;
   if (!(error instanceof ApiError)) {
-    const statusCode =
-      error.statusCode ||
-      (error instanceof Error
-        ? 400 // Bad Request
-        : 500); // Internal Server Error
+    const statusCode = error.statusCode || (error instanceof Error ? 400 : 500);
     const message =
       error.message ||
       (statusCode === 400
@@ -25,7 +21,7 @@ export const errorConverter: ErrorRequestHandler = (err, req, res, next) => {
 export const errorHandler: ErrorRequestHandler = (err, req, res, next) => {
   let { statusCode, message } = err;
   if (process.env.NODE_ENV === "production" && !err.isOperational) {
-    statusCode = 500; // Internal Server Error
+    statusCode = 500;
     message = "backend.internal_server_error";
   }
   res.locals.errorMessage = err.message;
@@ -41,7 +37,6 @@ export const errorHandler: ErrorRequestHandler = (err, req, res, next) => {
   next();
 };
 
-// Define an interface for req.user
 declare global {
   namespace Express {
     interface Request {
@@ -62,12 +57,11 @@ export const verifyToken = (
   next: NextFunction
 ) => {
   try {
-    // Get the token from the Authorization header
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return res
         .status(401)
-        .json({ message: "Access token is missing or invalid." });
+        .json({ message: "backend.access_token_missing_or_invalid" });
     }
 
     const token = authHeader.split(" ")[1];
@@ -79,12 +73,14 @@ export const verifyToken = (
       name: string;
       client_id: string;
     };
-    console.log(decoded);
+
     req.user = decoded;
     next();
   } catch (error) {
     console.error("Token verification failed:", error);
-    return res.status(403).json({ message: "Invalid or expired token." });
+    return res
+      .status(403)
+      .json({ message: "backend.invalid_or_expired_token" });
   }
 };
 
@@ -92,23 +88,24 @@ export const verifyRole = (...allowedRoles: string[]) => {
   return (req: any, res: any, next: any) => {
     try {
       if (!req.user) {
-        return res.status(403).json({ message: "Authentication required" });
+        return res
+          .status(403)
+          .json({ message: "backend.authentication_required" });
       }
       const userRole = req.user.type;
       if (!allowedRoles.includes(userRole)) {
         return res.status(403).json({
-          message: `Insufficient permissions. Required roles: ${allowedRoles.join(
-            ", "
-          )}`,
+          message: "backend.insufficient_permissions",
         });
       }
       next();
     } catch (error) {
-      console.log(error);
       console.error("Role verification failed:", error);
       return res
         .status(500)
-        .json({ message: "Internal server error during authorization" });
+        .json({
+          message: "backend.internal_server_error_during_authorization",
+        });
     }
   };
 };
@@ -121,14 +118,14 @@ export const checkProfileBlocked = async (
   try {
     const profile = await Profile.findById(req.user?.id);
     if (!profile) {
-      return res.status(404).json({ message: "Profile not found." });
+      return res.status(404).json({ message: "backend.profile_not_found" });
     }
     if (profile.blocked) {
-      return res.status(403).json({ message: "Your account is blocked." });
+      return res.status(403).json({ message: "backend.account_blocked" });
     }
     next();
   } catch (error) {
     console.error("Error checking profile status:", error);
-    return res.status(500).json({ message: "Internal server error." });
+    return res.status(500).json({ message: "backend.internal_server_error" });
   }
 };
