@@ -33,7 +33,7 @@ export const validateOTP = async (req: Request, res: Response) => {
     profile.isVerified = true;
     await profile.save();
     return successResponse(res, "Account successfully verified.");
-  } catch (error: any) {
+  } catch (error: unknown) {
     return errorResponse(res, "backend.serverError", 500);
   }
 };
@@ -65,7 +65,7 @@ export const forgetPassword = async (req: Request, res: Response) => {
     });
 
     return successResponse(res, "OTP sent to your email for password reset.");
-  } catch (error: any) {
+  } catch (error: unknown) {
     return errorResponse(res, "backend.serverError", 500);
   }
 };
@@ -101,7 +101,7 @@ export const resetPassword = async (req: Request, res: Response) => {
     await profile.save();
 
     return successResponse(res, "Password successfully reset.");
-  } catch (error: any) {
+  } catch (error: unknown) {
     return errorResponse(res, "backend.serverError", 500);
   }
 };
@@ -152,7 +152,7 @@ export const resendOTP = async (req: Request, res: Response) => {
     );
 
     return successResponse(res, "A new OTP has been sent to your email.");
-  } catch (error: any) {
+  } catch (error: unknown) {
     return errorResponse(res, "backend.serverError", 500);
   }
 };

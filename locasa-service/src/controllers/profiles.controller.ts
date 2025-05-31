@@ -2,57 +2,60 @@ import mongoose from "mongoose";
 import { ExpoPushToken, Profile } from "../database";
 import { errorResponse, successResponse } from "../utils";
 import bcrypt from "bcryptjs";
+
 export const getProfile = async (req: any, res: any) => {
   try {
     const { id, device_id } = req.params;
     if (!id) {
-      return errorResponse(res, "ivalid service if", 404);
+      return errorResponse(res, "backend.invalid_service_id", 404);
     }
     const expoPushToken = await ExpoPushToken.findOne({
       user_id: id,
       device_id: device_id,
     }).lean();
     if (!expoPushToken) {
-      return errorResponse(res, "Expo push token not found", 404);
+      return errorResponse(res, "backend.expo_push_token_not_found", 404);
     }
     return res.status(200).json({
       ok: true,
-      status: "Success",
-      message: "Service retrieved successfully",
+      status: "success",
+      message: "backend.service_retrieved_successfully",
       data: expoPushToken,
     });
   } catch (error) {
     console.error("Error retrieving service:", error);
-    return errorResponse(res, "get profile faield", 404);
+    return errorResponse(res, "backend.get_profile_failed", 404);
   }
 };
+
 export const getUserProfile = async (req: any, res: any) => {
   try {
     const { id } = req.params;
     if (!id) {
-      return errorResponse(res, "ivalid service if", 404);
+      return errorResponse(res, "backend.invalid_service_id", 404);
     }
     const profile = await Profile.findById(id).lean();
     if (!profile) {
-      return errorResponse(res, "profile not found", 404);
+      return errorResponse(res, "backend.profile_not_found", 404);
     }
     return res.status(200).json({
       ok: true,
-      status: "Success",
-      message: "Service retrieved successfully",
+      status: "success",
+      message: "backend.service_retrieved_successfully",
       data: profile,
     });
   } catch (error) {
-    console.error("Error retrieving service:", error);
-    return errorResponse(res, "get profile faield", 404);
+    console.error("backend.Error retrieving service:", error);
+    return errorResponse(res, "backend.get_profile_failed", 404);
   }
 };
+
 export const updateProfile = async (req: any, res: any) => {
   try {
     const { userId, device_id } = req.params;
     const updateData = req.body;
     if (!mongoose.Types.ObjectId.isValid(userId)) {
-      return errorResponse(res, "invalid service id", 404);
+      return errorResponse(res, "backend.invalid_service_id", 404);
     }
     const {
       notification,
@@ -72,7 +75,7 @@ export const updateProfile = async (req: any, res: any) => {
       { runValidators: true }
     );
     if (result.matchedCount === 0 || result2.matchedCount === 0) {
-      return errorResponse(res, "No Expo push tokens found for this user", 404);
+      return errorResponse(res, "backend.no_expo_push_tokens_found", 404);
     }
     const updatedTokens = await ExpoPushToken.findOne({
       user_id: userId,
@@ -81,29 +84,24 @@ export const updateProfile = async (req: any, res: any) => {
 
     return res.status(200).json({
       ok: true,
-      status: "Success",
-      message: "Expo push tokens updated successfully",
+      status: "success",
+      message: "backend.expo_push_tokens_updated",
       data: updatedTokens,
     });
   } catch (error) {
     console.error("Error updating profile:", error);
-    return errorResponse(res, "error updating expo push tokens", 404);
+    return errorResponse(res, "backend.error_updating_expo_push_tokens", 404);
   }
 };
 
 export const addToken = async (req: any, res: any) => {
   try {
     const { expoPushToken, type, device_id, device_type, status } = req.body;
-    console.log("expoPushToken", expoPushToken);
-    console.log("type", type);
-    console.log("device_id", device_id);
-    console.log("device_type", device_type);
-    console.log("status", status);
     const validTypes = ["hotel", "client", "admin"];
     if (!validTypes.includes(type)) {
       return errorResponse(
         res,
-        "Invalid type. Must be one of: hotel, client, admin",
+        "backend.invalid_type_must_be_hotel_client_or_admin",
         400
       );
     }
@@ -122,7 +120,7 @@ export const addToken = async (req: any, res: any) => {
         existingToken.notification = status;
         existingToken.newMessage = status;
         await existingToken.save();
-        return successResponse(res, "Expo push token updated successfully", {
+        return successResponse(res, "backend.expo_push_token_updated", {
           token: existingToken,
         });
       }
@@ -131,7 +129,7 @@ export const addToken = async (req: any, res: any) => {
         existingToken.newMessage = status;
         await existingToken.save();
       }
-      return successResponse(res, "Expo push token already exists", {
+      return successResponse(res, "backend.expo_push_token_already_exists", {
         token: existingToken,
       });
     }
@@ -150,14 +148,15 @@ export const addToken = async (req: any, res: any) => {
     });
 
     await newExpoPushToken.save();
-    return successResponse(res, "Expo push token added successfully", {
+    return successResponse(res, "backend.expo_push_token_added", {
       token: newExpoPushToken,
     });
   } catch (error: any) {
     console.log(error);
-    return errorResponse(res, error.message || "Server error", 500);
+    return errorResponse(res, error.message || "backend.server_error", 500);
   }
 };
+
 export const changePassword = async (req: any, res: any) => {
   try {
     const userId = req.user?.id;
@@ -166,30 +165,30 @@ export const changePassword = async (req: any, res: any) => {
     if (newPassword !== confirmNewPassword) {
       return errorResponse(
         res,
-        "New password and confirm password do not match.",
+        "backend.new_password_and_confirm_password_do_not_match",
         400
       );
     }
 
     if (!oldPassword) {
-      return errorResponse(res, "Old password is required.", 400);
+      return errorResponse(res, "backend.old_password_is_required", 400);
     }
 
     const profile = await Profile.findById(userId);
     if (!profile) {
-      return errorResponse(res, "User not found.", 404);
+      return errorResponse(res, "backend.user_not_found", 404);
     }
 
     const isPasswordValid = await bcrypt.compare(oldPassword, profile.password);
     if (!isPasswordValid) {
-      return errorResponse(res, "Old password is incorrect.", 401);
+      return errorResponse(res, "backend.old_password_is_incorrect", 401);
     }
 
     const isSamePassword = await bcrypt.compare(newPassword, profile.password);
     if (isSamePassword) {
       return errorResponse(
         res,
-        "New password must be different from the old password.",
+        "backend.new_password_must_be_different_from_old_password",
         400
       );
     }
@@ -200,9 +199,9 @@ export const changePassword = async (req: any, res: any) => {
       date: new Date().toISOString(),
     });
     await profile.save();
-    return successResponse(res, "Password changed successfully.");
+    return successResponse(res, "password_changed");
   } catch (error) {
     console.error("Error changing password:", error);
-    return errorResponse(res, "Failed to change password.", 500);
+    return errorResponse(res, "backend.failed_to_change_password", 500);
   }
 };

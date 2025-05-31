@@ -7,7 +7,6 @@ import { rabbitMQService } from "./services/RabbitMQService";
 import routes from "./routes/index";
 import morgan from "morgan";
 import cors from "cors";
-import "./types/express/index";
 
 const app: Express = express();
 let server: Server;
