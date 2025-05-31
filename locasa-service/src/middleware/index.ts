@@ -1,7 +1,7 @@
-import { ErrorRequestHandler } from "express";
+import { ErrorRequestHandler, RequestHandler } from "express";
 import { ApiError } from "../utils";
 import jwt from "jsonwebtoken";
-import { Request, Response, NextFunction } from "express";
+import { Request } from "express";
 import { Profile } from "../database";
 
 export const errorConverter: ErrorRequestHandler = (err, req, res, next) => {
@@ -37,93 +37,70 @@ export const errorHandler: ErrorRequestHandler = (err, req, res, next) => {
   next();
 };
 
-declare global {
-  namespace Express {
-    interface Request {
-      user?: {
-        id: string;
-        email: string;
-        type: "client" | "vendor";
-        name: string;
-        user_id: string;
-      };
-    }
-  }
-}
-
-export const verifyToken = (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const verifyToken: RequestHandler = (req, res, next): void => {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return res
+      res
         .status(401)
         .json({ message: "backend.access_token_missing_or_invalid" });
+      return;
     }
 
     const token = authHeader.split(" ")[1];
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as {
-      id: string;
-      email: string;
-      type: "client" | "vendor";
-      name: string;
-      user_id: string;
-    };
-
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET!
+    ) as Request["user"];
     req.user = decoded;
     next();
   } catch (error) {
     console.error("Token verification failed:", error);
-    return res
-      .status(403)
-      .json({ message: "backend.invalid_or_expired_token" });
+    res.status(403).json({ message: "backend.invalid_or_expired_token" });
   }
 };
 
-export const verifyRole = (...allowedRoles: string[]) => {
-  return (req: any, res: any, next: any) => {
+export const verifyRole = (...allowedRoles: string[]): RequestHandler => {
+  return (req, res, next): void => {
     try {
       if (!req.user) {
-        return res
-          .status(403)
-          .json({ message: "backend.authentication_required" });
+        res.status(403).json({ message: "backend.authentication_required" });
+        return;
       }
       const userRole = req.user.type;
       if (!allowedRoles.includes(userRole)) {
-        return res.status(403).json({
-          message: "backend.insufficient_permissions",
-        });
+        res.status(403).json({ message: "backend.insufficient_permissions" });
+        return;
       }
       next();
     } catch (error) {
       console.error("Role verification failed:", error);
-      return res.status(500).json({
+      res.status(500).json({
         message: "backend.internal_server_error_during_authorization",
       });
     }
   };
 };
 
-export const checkProfileBlocked = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const checkProfileBlocked: RequestHandler = async (
+  req,
+  res,
+  next
+): Promise<void> => {
   try {
     const profile = await Profile.findById(req.user?.id);
     if (!profile) {
-      return res.status(404).json({ message: "backend.profile_not_found" });
+      res.status(404).json({ message: "backend.profile_not_found" });
+      return;
     }
     if (profile.blocked) {
-      return res.status(403).json({ message: "backend.account_blocked" });
+      res.status(403).json({ message: "backend.account_blocked" });
+      return;
     }
     next();
   } catch (error) {
     console.error("Error checking profile status:", error);
-    return res.status(500).json({ message: "backend.internal_server_error" });
+    res.status(500).json({ message: "backend.internal_server_error" });
   }
 };
