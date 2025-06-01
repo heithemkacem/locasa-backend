@@ -54,9 +54,6 @@ const profileSchema = new Schema<IProfile>(
     isVerified: { type: Boolean, default: false },
     createdAt: { type: Date, default: Date.now },
     user_id: { type: mongoose.Schema.Types.ObjectId },
-    loginHistory: { type: [loginHistorySchema], default: [] }, // Updated loginHistory
-    expoPushToken: { type: [String], default: [] },
-    bannedFrom: { type: [String], default: [] },
     blocked: { type: Boolean, default: false },
     source: { type: String, required: true },
   },

@@ -26,10 +26,10 @@ export class ExpoPushService {
     // Ensure userId is always an array
     const userIds = Array.isArray(userId) ? userId : [userId];
     console.log("userIds", userIds);
-    const ExpoPushTokens = await ExpoPushToken.find({ 
-      user_id: { $in: userIds.map(id => new mongoose.Types.ObjectId(id)) },
+    const ExpoPushTokens = await ExpoPushToken.find({
+      user_id: { $in: userIds },
       active: true,
-      notification: true 
+      notification: true,
     });
     const tokens = ExpoPushTokens.map((token) => token.expoPushToken);
     for (const token of tokens) {
@@ -76,11 +76,11 @@ export class ExpoPushService {
 
     // Ensure userId is always an array
     const userIds = Array.isArray(userId) ? userId : [userId];
-    const ExpoPushTokens = await ExpoPushToken.find({ 
-      user_id: { $in: userIds.map(id => new mongoose.Types.ObjectId(id)) },
+    const ExpoPushTokens = await ExpoPushToken.find({
+      user_id: { $in: userIds },
       active: true,
       notification: true,
-      newMessage: true 
+      newMessage: true,
     });
     console.log(ExpoPushTokens);
     const tokens = ExpoPushTokens.map((token) => token.expoPushToken);

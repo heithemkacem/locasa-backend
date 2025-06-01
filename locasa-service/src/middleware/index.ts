@@ -1,8 +1,22 @@
 import { ErrorRequestHandler, RequestHandler } from "express";
 import { ApiError } from "../utils";
 import jwt from "jsonwebtoken";
-import { Request } from "express";
 import { Profile } from "../database";
+import { AuthedRequest } from "../types/custom/custom";
+
+declare global {
+  namespace Express {
+    interface Request {
+      user?: {
+        id: string;
+        email: string;
+        type: "client" | "vendor";
+        name: string;
+        user_id: string;
+      };
+    }
+  }
+}
 
 export const errorConverter: ErrorRequestHandler = (err, req, res, next) => {
   let error = err;
@@ -52,7 +66,7 @@ export const verifyToken: RequestHandler = (req, res, next): void => {
     const decoded = jwt.verify(
       token,
       process.env.JWT_SECRET!
-    ) as Request["user"];
+    ) as AuthedRequest["user"];
     req.user = decoded;
     next();
   } catch (error) {

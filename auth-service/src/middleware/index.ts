@@ -1,8 +1,5 @@
 import { ErrorRequestHandler } from "express";
 import { ApiError } from "../utils";
-import jwt from "jsonwebtoken";
-import { Request, Response, NextFunction } from "express";
-import { Profile } from "../database";
 
 export const errorConverter: ErrorRequestHandler = (err, req, res, next) => {
   let error = err;
