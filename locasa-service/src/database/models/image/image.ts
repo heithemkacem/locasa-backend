@@ -3,14 +3,11 @@ import mongoose, { Schema, Document } from "mongoose";
 // Interface for TypeScript typing
 export interface IImage extends Document {
   url: string;
-  hotel?: mongoose.Types.ObjectId;
-  client?: mongoose.Types.ObjectId;
+  vendor: mongoose.Types.ObjectId;
   name: string;
   size: number;
   key: string;
   mimetype: string;
-  createdAt: Date;
-  updatedAt: Date;
 }
 
 // Schema Definition
@@ -20,13 +17,9 @@ const imageSchema = new Schema<IImage>(
       type: String,
       required: true,
     },
-    hotel: {
+    vendor: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Hotel",
-    },
-    client: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Client",
+      ref: "Vendor",
     },
     name: {
       type: String,

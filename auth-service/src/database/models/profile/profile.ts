@@ -19,15 +19,8 @@ export interface IProfile extends Document {
   user_id: mongoose.Schema.Types.ObjectId;
   isPhoneVerified: boolean;
   loginHistory: LoginHistory[];
-  expoPushToken: string[];
   blocked: boolean;
   source: string;
-  notification: boolean;
-  emailNotification: boolean;
-  bookingUpdate: boolean;
-  newMessage: boolean;
-  marketing: boolean;
-  bannedFrom: string[];
 }
 const profileSchema = new Schema<IProfile>(
   {
@@ -41,11 +34,6 @@ const profileSchema = new Schema<IProfile>(
     password: { type: String },
     phone: { type: String },
     isPhoneVerified: { type: Boolean, default: true },
-    notification: { type: Boolean, default: false },
-    emailNotification: { type: Boolean, default: false },
-    bookingUpdate: { type: Boolean, default: false },
-    newMessage: { type: Boolean, default: false },
-    marketing: { type: Boolean, default: false },
     type: {
       type: String,
       enum: ["client", "vendor"],
@@ -55,8 +43,6 @@ const profileSchema = new Schema<IProfile>(
     createdAt: { type: Date, default: Date.now },
     user_id: { type: mongoose.Schema.Types.ObjectId },
     loginHistory: { type: [loginHistorySchema], default: [] }, // Updated loginHistory
-    expoPushToken: { type: [String], default: [] },
-    bannedFrom: { type: [String], default: [] },
     blocked: { type: Boolean, default: false },
     source: { type: String, required: true },
   },

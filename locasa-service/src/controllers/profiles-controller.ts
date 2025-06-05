@@ -97,7 +97,7 @@ export const updateProfile = async (req: any, res: any) => {
 export const addToken = async (req: any, res: any) => {
   try {
     const { expoPushToken, type, device_id, device_type, status } = req.body;
-    const validTypes = ["hotel", "client", "admin"];
+    const validTypes = ["client", "vendor"];
     if (!validTypes.includes(type)) {
       return errorResponse(
         res,

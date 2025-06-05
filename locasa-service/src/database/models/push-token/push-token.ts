@@ -2,7 +2,7 @@ import mongoose, { Schema, Document } from "mongoose";
 
 export interface IExpoPushToken extends Document {
   expoPushToken: string; // The Expo push token
-  type: "hotel" | "client" | "admin" | "client-no-hotel"; // User role
+  type: "vendor" | "client"; // User role
   active: boolean; // Indicates if the token is active
   device_id: string; // Unique device identifier
   device_type: String; // Device type
@@ -19,7 +19,7 @@ const expoPushTokenSchema = new Schema<IExpoPushToken>(
     expoPushToken: { type: String, required: true }, // Expo push token
     type: {
       type: String,
-      enum: ["hotel", "client", "admin", "client-no-hotel"],
+      enum: ["client", "vendor"], // User roles
       required: true,
     },
     active: { type: Boolean, default: true }, // Token is active by default

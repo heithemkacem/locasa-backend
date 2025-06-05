@@ -20,9 +20,9 @@ export const requestBodyValidationSchema = Joi.object({
     "string.empty": "Expo Push Token is required.",
     "any.required": "Expo Push Token is required.",
   }),
-  type: Joi.string().valid("hotel", "admin", "client").required().messages({
+  type: Joi.string().valid("vendor", "client").required().messages({
     "string.empty": "Type is required.",
-    "any.only": 'Type must be either "hotel", "admin", or "client".',
+    "any.only": 'Type must be either "vendor" or "client".',
     "any.required": "Type is required.",
   }),
   device_id: Joi.string().required().messages({
@@ -36,7 +36,6 @@ export const requestBodyValidationSchema = Joi.object({
   status: Joi.boolean().required().messages({
     "any.required": "Status is required.",
   }),
-  
 }).messages({
   "object.unknown": "Unexpected field detected in request body.",
 });

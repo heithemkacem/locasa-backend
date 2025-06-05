@@ -5,7 +5,7 @@ import {
   getProfile,
   getUserProfile,
   updateProfile,
-} from "../controllers/profiles.controller";
+} from "../controllers/profiles-controller";
 import { verifyToken } from "../middleware";
 import {
   validateAddTokenRequestBody,

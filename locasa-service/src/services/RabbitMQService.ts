@@ -54,39 +54,6 @@ class RabbitMQService {
       config.queue.emailQueue,
       Buffer.from(JSON.stringify(message))
     );
-    console.log("Email notification request sent");
-  }
-  async getTheNumberOfMessages(
-    sender: string,
-    receiver: string
-  ): Promise<{
-    count: number;
-    connected: boolean;
-    latestMessageAt: string | null;
-  }> {
-    return new Promise((resolve) => {
-      const correlationId = uuidv4();
-
-      const timeout = setTimeout(() => {
-        this.correlationMap.delete(correlationId);
-        resolve({
-          count: 0,
-          connected: false,
-          latestMessageAt: null,
-        });
-      }, 5000);
-
-      this.correlationMap.set(correlationId, (result) => {
-        clearTimeout(timeout);
-        resolve(result);
-      });
-
-      this.channel.sendToQueue(
-        config.queue.request,
-        Buffer.from(JSON.stringify({ sender, receiver })),
-        { correlationId, replyTo: config.queue.response }
-      );
-    });
   }
 
   async notifyReceiver(
@@ -111,17 +78,6 @@ class RabbitMQService {
       );
     } catch (error) {
       console.error(error);
-    }
-  }
-  private async shutdown() {
-    try {
-      await this.channel.close();
-      await this.connection.close();
-      console.log("RabbitMQ connection closed gracefully");
-      process.exit(0);
-    } catch (error) {
-      console.error("Error during shutdown:", error);
-      process.exit(1);
     }
   }
 }

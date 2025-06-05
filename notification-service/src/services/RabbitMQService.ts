@@ -30,30 +30,20 @@ class RabbitMQService {
     this.channel.consume(config.queue.notifications, async (msg) => {
       if (msg) {
         try {
-          const { userId, message, title, data , type } = JSON.parse(
+          const { userId, message, title, data } = JSON.parse(
             msg.content.toString()
           );
           console.log("userId", userId);
           console.log("title", title);
           console.log("message", message);
-          console.log("type", type);
           console.log("data", data);
-          if(type === "normal-notification"){
-            await this.expoPushService.sendPushNotification(
-              userId,
-              title,
-              message,
-              data
-            );
-          }
-          if(type === "message-notification"){
-            await this.expoPushService.sendMessagePushNotification(
-              userId,
-              title,
-              message,
-              data
-            );
-          }
+          await this.expoPushService.sendPushNotification(
+            userId,
+            title,
+            message,
+            data
+          );
+
           this.channel.ack(msg);
         } catch (error) {
           console.error("Error processing notification:", error);
