@@ -22,6 +22,7 @@ import {
   getOrdersByBrand,
   updateOrderStatus,
   getOrder,
+  getBrands,
 } from "../controllers/vendor-controller";
 
 const router = Router();
@@ -41,6 +42,7 @@ router.post(
   validateEditBrand,
   editBrand
 );
+router.get("/get-brands", verifyToken, verifyRole("vendor"), getBrands);
 router.get("/get-brand/:id", verifyToken, verifyRole("vendor"), getBrand);
 router.delete(
   "/delete-brand/:id",

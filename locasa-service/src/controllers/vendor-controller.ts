@@ -82,6 +82,19 @@ export const editBrand = async (req: Request, res: Response) => {
   }
 };
 
+export const getBrands = async (req: Request, res: Response) => {
+  try {
+    const vendorId = req.user?.user_id;
+    const brands = await Brand.find({ vendor: vendorId })
+      .populate("location")
+      .sort({ createdAt: -1 });
+    return successResponse(res, "backend.brands_found", { brands });
+  } catch (error) {
+    console.error("Error fetching brands:", error);
+    return errorResponse(res, "backend.failed_to_fetch_brands", 500);
+  }
+};
+
 export const getBrand = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
