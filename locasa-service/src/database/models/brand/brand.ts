@@ -15,6 +15,7 @@ export interface IBrand extends Document {
   reviewsCount: number;
   rating: number;
   products: Types.ObjectId[];
+  orders: Types.ObjectId[];
 }
 
 // Schema Definition
@@ -77,6 +78,12 @@ const brandSchema = new Schema<IBrand>(
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Product",
+      },
+    ],
+    orders: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Order",
       },
     ],
   },
