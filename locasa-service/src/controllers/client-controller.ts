@@ -323,7 +323,7 @@ export const markNotificationAsRead = async (req: Request, res: Response) => {
     return errorResponse(res, "backend.failed_to_mark_notification", 500);
   }
 };
-export const smartSearch = async (req: Request, res: any) => {
+export const smartSearch = async (req: any, res: any) => {
   const { q, type } = req.body;
 
   if (!q || typeof q !== "string") {
@@ -341,7 +341,7 @@ export const smartSearch = async (req: Request, res: any) => {
         });
 
       return res.json({
-        brands: searchResults.hits?.map((hit) => hit.document) ?? [],
+        brands: searchResults.hits?.map((hit: any) => hit.document) ?? [],
       });
     } else if (type === "product") {
       const searchResults = await typesense
@@ -353,7 +353,7 @@ export const smartSearch = async (req: Request, res: any) => {
         });
 
       return res.json({
-        products: searchResults.hits?.map((hit) => hit.document) ?? [],
+        products: searchResults.hits?.map((hit: any) => hit.document) ?? [],
       });
     } else {
       const [brandResults, productResults] = await Promise.all([
@@ -368,8 +368,8 @@ export const smartSearch = async (req: Request, res: any) => {
       ]);
 
       return res.json({
-        brands: brandResults.hits?.map((hit) => hit.document) ?? [],
-        products: productResults.hits?.map((hit) => hit.document) ?? [],
+        brands: brandResults.hits?.map((hit: any) => hit.document) ?? [],
+        products: productResults.hits?.map((hit: any) => hit.document) ?? [],
       });
     }
   } catch (err) {
