@@ -13,6 +13,7 @@ import {
 import { getPaginationOptions, paginateQuery } from "../utils/pagination";
 import { AuthedRequest } from "../types/custom/custom";
 import { errorResponse, successResponse } from "../utils";
+import { typesense } from "../services/TypeSenseClient";
 
 export const deleteAccount = async (req: AuthedRequest, res: Response) => {
   try {
@@ -320,5 +321,59 @@ export const markNotificationAsRead = async (req: Request, res: Response) => {
   } catch (error) {
     console.error("Error marking notification as read:", error);
     return errorResponse(res, "backend.failed_to_mark_notification", 500);
+  }
+};
+export const smartSearch = async (req: Request, res: any) => {
+  const { q, type } = req.body;
+
+  if (!q || typeof q !== "string") {
+    return res.status(400).json({ error: "Query parameter 'q' is required." });
+  }
+
+  try {
+    if (type === "brand") {
+      const searchResults = await typesense
+        .collections("brands")
+        .documents()
+        .search({
+          q,
+          query_by: "name",
+        });
+
+      return res.json({
+        brands: searchResults.hits?.map((hit) => hit.document) ?? [],
+      });
+    } else if (type === "product") {
+      const searchResults = await typesense
+        .collections("products")
+        .documents()
+        .search({
+          q,
+          query_by: "name,category,brand",
+        });
+
+      return res.json({
+        products: searchResults.hits?.map((hit) => hit.document) ?? [],
+      });
+    } else {
+      const [brandResults, productResults] = await Promise.all([
+        typesense
+          .collections("brands")
+          .documents()
+          .search({ q, query_by: "name" }),
+        typesense
+          .collections("products")
+          .documents()
+          .search({ q, query_by: "name,category,brand" }),
+      ]);
+
+      return res.json({
+        brands: brandResults.hits?.map((hit) => hit.document) ?? [],
+        products: productResults.hits?.map((hit) => hit.document) ?? [],
+      });
+    }
+  } catch (err) {
+    console.error("Search error:", err);
+    return res.status(500).json({ error: "Internal server error" });
   }
 };

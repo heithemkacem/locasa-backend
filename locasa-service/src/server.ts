@@ -7,7 +7,13 @@ import { rabbitMQService } from "./services/RabbitMQService";
 import routes from "./routes/index";
 import morgan from "morgan";
 import cors from "cors";
+import cron from "node-cron";
+import { syncTypeSense } from "./database/scripts/syncTypeSense";
 
+cron.schedule("0 */8 * * *", () => {
+  console.log("⏰ Running sync to Typesense every 8 hours");
+  syncTypeSense();
+});
 const app: Express = express();
 let server: Server;
 // Enable CORS for all routes

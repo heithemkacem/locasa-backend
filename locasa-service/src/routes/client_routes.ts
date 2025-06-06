@@ -24,6 +24,7 @@ import {
   updateLocation,
   addReview,
   getReviews,
+  smartSearch,
 } from "../controllers/client-controller";
 
 const router = Router();
@@ -110,5 +111,5 @@ router.get(
   verifyRole("client"),
   getReviews
 );
-
+router.post("/smart-search", verifyToken, verifyRole("client"), smartSearch);
 export default router;
