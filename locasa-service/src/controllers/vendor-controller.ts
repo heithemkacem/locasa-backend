@@ -1,16 +1,40 @@
 import { Request, Response } from "express";
-import { Brand, Product, Order } from "../database";
+import { Brand, Product, Order, Location, Vendor } from "../database";
 import { successResponse, errorResponse } from "../utils";
-import { Types } from "mongoose";
 
 // Brand Controllers
 export const addBrand = async (req: Request, res: Response) => {
   try {
     const vendorId = req.user?.user_id;
-    const brandData = { ...req.body, vendor: vendorId };
+    const { location: locationData, ...brandDetails } = req.body;
+
+    // First create the location
+    const locationDoc = await Location.create({
+      ...locationData,
+      type: "brand",
+      profile: req.user?.id, // Link to vendor's profile
+    });
+
+    // Then create the brand with the location reference
+    const brandData = {
+      ...brandDetails,
+      vendor: vendorId,
+      location: locationDoc._id,
+    };
 
     const brand = await Brand.create(brandData);
-    return successResponse(res, "backend.brand_created", { brand });
+
+    // Add the brand to vendor's brands array
+    await Vendor.findByIdAndUpdate(vendorId, {
+      $push: { brands: brand._id },
+    });
+
+    return successResponse(res, "backend.brand_created", {
+      brand: {
+        ...brand.toObject(),
+        location: locationDoc,
+      },
+    });
   } catch (error) {
     console.error("Error adding brand:", error);
     return errorResponse(res, "backend.failed_to_create_brand", 500);
@@ -21,16 +45,34 @@ export const editBrand = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const vendorId = req.user?.user_id;
+    const { location: locationData, ...brandDetails } = req.body;
 
-    const brand = await Brand.findOneAndUpdate(
-      { _id: id, vendor: vendorId },
-      { $set: req.body },
-      { new: true }
-    );
-
-    if (!brand) {
+    // First find the brand to ensure it exists and belongs to the vendor
+    const existingBrand = await Brand.findOne({ _id: id, vendor: vendorId });
+    if (!existingBrand) {
       return errorResponse(res, "backend.brand_not_found", 404);
     }
+
+    // If location data is provided, update the location
+    if (locationData) {
+      await Location.findByIdAndUpdate(
+        existingBrand.location,
+        {
+          $set: {
+            ...locationData,
+            type: "brand", // Ensure type remains brand
+          },
+        },
+        { new: true }
+      );
+    }
+
+    // Update the brand
+    const brand = await Brand.findByIdAndUpdate(
+      id,
+      { $set: brandDetails },
+      { new: true }
+    ).populate("location");
 
     return successResponse(res, "backend.brand_updated", { brand });
   } catch (error) {
@@ -61,13 +103,25 @@ export const deleteBrand = async (req: Request, res: Response) => {
     const { id } = req.params;
     const vendorId = req.user?.user_id;
 
-    const brand = await Brand.findOneAndDelete({ _id: id, vendor: vendorId });
+    // First find the brand to get the location ID
+    const brand = await Brand.findOne({ _id: id, vendor: vendorId });
     if (!brand) {
       return errorResponse(res, "backend.brand_not_found", 404);
     }
 
+    // Delete the brand
+    await Brand.findByIdAndDelete(id);
+
+    // Delete the associated location
+    await Location.findByIdAndDelete(brand.location);
+
     // Delete associated products
     await Product.deleteMany({ brand: id });
+
+    // Remove brand from vendor's brands array
+    await Vendor.findByIdAndUpdate(vendorId, {
+      $pull: { brands: id },
+    });
 
     return successResponse(res, "backend.brand_deleted");
   } catch (error) {

@@ -10,7 +10,7 @@ export interface ILocation extends Document {
   state: string;
   country: string;
   zipCode: string;
-  type: "workplace" | "home" | "other";
+  type: "workplace" | "home" | "other" | "brand";
 }
 
 // Schema Definition
@@ -26,7 +26,7 @@ const locationSchema = new Schema<ILocation>(
     zipCode: { type: String },
     type: {
       type: String,
-      enum: ["workplace", "home", "other"],
+      enum: ["workplace", "home", "other", "brand"],
       required: true,
     },
   },
