@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import mongoose from "mongoose";
 import { Brand, Product, Order, Location, Vendor } from "../database";
 import { successResponse, errorResponse } from "../utils";
 
@@ -103,25 +104,47 @@ export const deleteBrand = async (req: Request, res: Response) => {
     const { id } = req.params;
     const vendorId = req.user?.user_id;
 
-    // First find the brand to get the location ID
+    // First check if the vendor exists and owns this brand
+    const vendor = await Vendor.findById(vendorId);
+    if (!vendor) {
+      return errorResponse(res, "backend.vendor_not_found", 404);
+    }
+
+    // Verify that the brand exists in vendor's brands array
+    if (!vendor.brands.some((brandId) => brandId.toString() === id)) {
+      return errorResponse(res, "backend.unauthorized_brand_access", 403);
+    }
+
+    // Find the brand to get the location ID and double check ownership
     const brand = await Brand.findOne({ _id: id, vendor: vendorId });
     if (!brand) {
       return errorResponse(res, "backend.brand_not_found", 404);
     }
 
-    // Delete the brand
-    await Brand.findByIdAndDelete(id);
+    // Start a transaction for atomicity
+    const session = await mongoose.startSession();
+    await session.withTransaction(async () => {
+      // Delete associated products
+      await Product.deleteMany({ brand: id }, { session });
 
-    // Delete the associated location
-    await Location.findByIdAndDelete(brand.location);
+      // Delete the associated location
+      if (brand.location) {
+        await Location.findByIdAndDelete(brand.location, { session });
+      }
 
-    // Delete associated products
-    await Product.deleteMany({ brand: id });
+      // Remove brand from vendor's brands array
+      await Vendor.findByIdAndUpdate(
+        vendorId,
+        {
+          $pull: { brands: id },
+        },
+        { session }
+      );
 
-    // Remove brand from vendor's brands array
-    await Vendor.findByIdAndUpdate(vendorId, {
-      $pull: { brands: id },
+      // Delete the brand
+      await Brand.findByIdAndDelete(id, { session });
     });
+    await session.endSession();
 
     return successResponse(res, "backend.brand_deleted");
   } catch (error) {
