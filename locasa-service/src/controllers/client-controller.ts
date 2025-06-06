@@ -10,6 +10,7 @@ import {
   Review,
   Notification,
 } from "../database";
+import { getPaginationOptions, paginateQuery } from "../utils/pagination";
 import { AuthedRequest } from "../types/custom/custom";
 import { errorResponse, successResponse } from "../utils";
 
@@ -38,13 +39,18 @@ export const deleteAccount = async (req: AuthedRequest, res: Response) => {
 };
 export const getBrands = async (req: Request, res: Response) => {
   try {
-    const brands = await Brand.find()
+    const paginationOptions = getPaginationOptions(req);
+
+    const query = Brand.find()
       .populate("location")
       .populate({
         path: "reviews",
         populate: { path: "client", select: "name avatar" },
-      });
-    return successResponse(res, "backend.brands_found", { brands });
+      })
+      .sort({ createdAt: -1 });
+
+    const result = await paginateQuery(query, paginationOptions);
+    return successResponse(res, "backend.brands_found", result);
   } catch (error) {
     console.error("Error fetching brands:", error);
     return errorResponse(res, "backend.failed_to_fetch_brands", 500);
@@ -53,11 +59,17 @@ export const getBrands = async (req: Request, res: Response) => {
 
 export const getProducts = async (req: Request, res: Response) => {
   try {
-    const products = await Product.find().populate({
-      path: "brand",
-      populate: { path: "location" },
-    });
-    return successResponse(res, "backend.products_found", { products });
+    const paginationOptions = getPaginationOptions(req);
+
+    const query = Product.find()
+      .populate({
+        path: "brand",
+        populate: { path: "location" },
+      })
+      .sort({ createdAt: -1 });
+
+    const result = await paginateQuery(query, paginationOptions);
+    return successResponse(res, "backend.products_found", result);
   } catch (error) {
     console.error("Error fetching products:", error);
     return errorResponse(res, "backend.failed_to_fetch_products", 500);
@@ -88,8 +100,14 @@ export const getBrand = async (req: Request, res: Response) => {
 export const getBrandProducts = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const products = await Product.find({ brand: id }).populate("brand");
-    return successResponse(res, "backend.products_found", { products });
+    const paginationOptions = getPaginationOptions(req);
+
+    const query = Product.find({ brand: id })
+      .populate("brand")
+      .sort({ createdAt: -1 });
+
+    const result = await paginateQuery(query, paginationOptions);
+    return successResponse(res, "backend.products_found", result);
   } catch (error) {
     console.error("Error fetching brand products:", error);
     return errorResponse(res, "backend.failed_to_fetch_products", 500);
@@ -172,8 +190,12 @@ export const addLocation = async (req: Request, res: Response) => {
 export const getLocations = async (req: Request, res: Response) => {
   try {
     const userId = req.user?.id;
-    const locations = await Location.find({ profile: userId });
-    return successResponse(res, "backend.locations_found", { locations });
+    const paginationOptions = getPaginationOptions(req);
+
+    const query = Location.find({ profile: userId }).sort({ createdAt: -1 });
+
+    const result = await paginateQuery(query, paginationOptions);
+    return successResponse(res, "backend.locations_found", result);
   } catch (error) {
     console.error("Error fetching locations:", error);
     return errorResponse(res, "backend.failed_to_fetch_locations", 500);
@@ -247,12 +269,14 @@ export const addReview = async (req: Request, res: Response) => {
 export const getReviews = async (req: Request, res: Response) => {
   try {
     const { brand_id } = req.params;
-    const reviews = await Review.find({ brandId: brand_id }).populate(
-      "client",
-      "name avatar"
-    );
+    const paginationOptions = getPaginationOptions(req);
 
-    return successResponse(res, "backend.reviews_found", { reviews });
+    const query = Review.find({ brandId: brand_id })
+      .populate("client", "name avatar")
+      .sort({ createdAt: -1 });
+
+    const result = await paginateQuery(query, paginationOptions);
+    return successResponse(res, "backend.reviews_found", result);
   } catch (error) {
     console.error("Error fetching reviews:", error);
     return errorResponse(res, "backend.failed_to_fetch_reviews", 500);
@@ -263,13 +287,14 @@ export const getReviews = async (req: Request, res: Response) => {
 export const getNotifications = async (req: Request, res: Response) => {
   try {
     const userId = req.user?.id;
-    const notifications = await Notification.find({ profile: userId }).sort({
+    const paginationOptions = getPaginationOptions(req);
+
+    const query = Notification.find({ profile: userId }).sort({
       createdAt: -1,
     });
 
-    return successResponse(res, "backend.notifications_found", {
-      notifications,
-    });
+    const result = await paginateQuery(query, paginationOptions);
+    return successResponse(res, "backend.notifications_found", result);
   } catch (error) {
     console.error("Error fetching notifications:", error);
     return errorResponse(res, "backend.failed_to_fetch_notifications", 500);

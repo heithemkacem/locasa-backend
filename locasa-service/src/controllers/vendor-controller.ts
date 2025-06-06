@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import mongoose from "mongoose";
 import { Brand, Product, Order, Location, Vendor } from "../database";
 import { successResponse, errorResponse } from "../utils";
+import { getPaginationOptions, paginateQuery } from "../utils/pagination";
 
 // Brand Controllers
 export const addBrand = async (req: Request, res: Response) => {
@@ -85,10 +86,14 @@ export const editBrand = async (req: Request, res: Response) => {
 export const getBrands = async (req: Request, res: Response) => {
   try {
     const vendorId = req.user?.user_id;
-    const brands = await Brand.find({ vendor: vendorId })
+    const paginationOptions = getPaginationOptions(req);
+
+    const query = Brand.find({ vendor: vendorId })
       .populate("location")
       .sort({ createdAt: -1 });
-    return successResponse(res, "backend.brands_found", { brands });
+
+    const result = await paginateQuery(query, paginationOptions);
+    return successResponse(res, "backend.brands_found", result);
   } catch (error) {
     console.error("Error fetching brands:", error);
     return errorResponse(res, "backend.failed_to_fetch_brands", 500);
@@ -230,8 +235,14 @@ export const editProduct = async (req: Request, res: Response) => {
 export const getProducts = async (req: Request, res: Response) => {
   try {
     const vendorId = req.user?.user_id;
-    const products = await Product.find({ vendor: vendorId }).populate("brand");
-    return successResponse(res, "backend.products_found", { products });
+    const paginationOptions = getPaginationOptions(req);
+
+    const query = Product.find({ vendor: vendorId })
+      .populate("brand")
+      .sort({ createdAt: -1 });
+
+    const result = await paginateQuery(query, paginationOptions);
+    return successResponse(res, "backend.products_found", result);
   } catch (error) {
     console.error("Error fetching products:", error);
     return errorResponse(res, "backend.failed_to_fetch_products", 500);
@@ -242,14 +253,19 @@ export const getProductsByBrand = async (req: Request, res: Response) => {
   try {
     const { brand_id } = req.params;
     const vendorId = req.user?.user_id;
+    const paginationOptions = getPaginationOptions(req);
 
     const brand = await Brand.findOne({ _id: brand_id, vendor: vendorId });
     if (!brand) {
       return errorResponse(res, "backend.brand_not_found", 404);
     }
 
-    const products = await Product.find({ brand: brand_id });
-    return successResponse(res, "backend.products_found", { products });
+    const query = Product.find({ brand: brand_id })
+      .populate("brand")
+      .sort({ createdAt: -1 });
+
+    const result = await paginateQuery(query, paginationOptions);
+    return successResponse(res, "backend.products_found", result);
   } catch (error) {
     console.error("Error fetching products:", error);
     return errorResponse(res, "backend.failed_to_fetch_products", 500);
@@ -305,11 +321,16 @@ export const deleteProduct = async (req: Request, res: Response) => {
 export const getOrders = async (req: Request, res: Response) => {
   try {
     const vendorId = req.user?.user_id;
-    const orders = await Order.find({ "brand.vendor": vendorId })
+    const paginationOptions = getPaginationOptions(req);
+
+    const query = Order.find({ "brand.vendor": vendorId })
       .populate("product")
       .populate("client")
-      .populate("brand");
-    return successResponse(res, "backend.orders_found", { orders });
+      .populate("brand")
+      .sort({ createdAt: -1 });
+
+    const result = await paginateQuery(query, paginationOptions);
+    return successResponse(res, "backend.orders_found", result);
   } catch (error) {
     console.error("Error fetching orders:", error);
     return errorResponse(res, "backend.failed_to_fetch_orders", 500);
@@ -320,17 +341,21 @@ export const getOrdersByBrand = async (req: Request, res: Response) => {
   try {
     const { brand_id } = req.params;
     const vendorId = req.user?.user_id;
+    const paginationOptions = getPaginationOptions(req);
 
     const brand = await Brand.findOne({ _id: brand_id, vendor: vendorId });
     if (!brand) {
       return errorResponse(res, "backend.brand_not_found", 404);
     }
 
-    const orders = await Order.find({ brand: brand_id })
+    const query = Order.find({ brand: brand_id })
       .populate("product")
       .populate("client")
-      .populate("brand");
-    return successResponse(res, "backend.orders_found", { orders });
+      .populate("brand")
+      .sort({ createdAt: -1 });
+
+    const result = await paginateQuery(query, paginationOptions);
+    return successResponse(res, "backend.orders_found", result);
   } catch (error) {
     console.error("Error fetching orders:", error);
     return errorResponse(res, "backend.failed_to_fetch_orders", 500);
