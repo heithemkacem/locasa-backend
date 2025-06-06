@@ -81,11 +81,37 @@ export const editBrandSchema = Joi.object({
   phone: Joi.string().optional().allow("").messages({
     "string.base": "backend.brand_phone_must_be_string",
   }),
-  location: Joi.string()
-    .pattern(/^[0-9a-fA-F]{24}$/)
+  location: Joi.object({
+    address: Joi.string().required().messages({
+      "string.empty": "backend.location_address_required",
+      "any.required": "backend.location_address_required",
+    }),
+    latitude: Joi.number().optional().messages({
+      "number.base": "backend.location_latitude_must_be_number",
+    }),
+    longitude: Joi.number().optional().messages({
+      "number.base": "backend.location_longitude_must_be_number",
+    }),
+    city: Joi.string().required().messages({
+      "string.empty": "backend.location_city_required",
+      "any.required": "backend.location_city_required",
+    }),
+    state: Joi.string().required().messages({
+      "string.empty": "backend.location_state_required",
+      "any.required": "backend.location_state_required",
+    }),
+    country: Joi.string().required().messages({
+      "string.empty": "backend.location_country_required",
+      "any.required": "backend.location_country_required",
+    }),
+    zipCode: Joi.string().required().messages({
+      "string.empty": "backend.location_zipcode_required",
+      "any.required": "backend.location_zipcode_required",
+    }),
+  })
     .optional()
     .messages({
-      "string.pattern.base": "backend.brand_location_invalid",
+      "object.base": "backend.location_must_be_object",
     }),
   category: Joi.string().optional().messages({
     "string.base": "backend.brand_category_must_be_string",

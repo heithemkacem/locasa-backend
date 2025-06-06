@@ -1,6 +1,13 @@
 import { Router } from "express";
 import { verifyRole, verifyToken } from "../middleware";
 import {
+  validateAddBrand,
+  validateEditBrand,
+  validateAddProduct,
+  validateEditProduct,
+  validateUpdateOrderStatus,
+} from "../middleware/vendor_dto";
+import {
   addBrand,
   editBrand,
   getBrand,
@@ -20,8 +27,20 @@ import {
 const router = Router();
 
 // Brand routes
-router.post("/add-brand", verifyToken, verifyRole("vendor"), addBrand);
-router.post("/edit-brand/:id", verifyToken, verifyRole("vendor"), editBrand);
+router.post(
+  "/add-brand",
+  verifyToken,
+  verifyRole("vendor"),
+  validateAddBrand,
+  addBrand
+);
+router.post(
+  "/edit-brand/:id",
+  verifyToken,
+  verifyRole("vendor"),
+  validateEditBrand,
+  editBrand
+);
 router.get("/get-brand/:id", verifyToken, verifyRole("vendor"), getBrand);
 router.delete(
   "/delete-brand/:id",
@@ -42,16 +61,24 @@ router.post(
   "/update-order-status/:id",
   verifyToken,
   verifyRole("vendor"),
+  validateUpdateOrderStatus,
   updateOrderStatus
 );
 router.get("/get-order/:id", verifyToken, verifyRole("vendor"), getOrder);
 
 // Product routes
-router.post("/add-product", verifyToken, verifyRole("vendor"), addProduct);
+router.post(
+  "/add-product",
+  verifyToken,
+  verifyRole("vendor"),
+  validateAddProduct,
+  addProduct
+);
 router.post(
   "/edit-product/:id",
   verifyToken,
   verifyRole("vendor"),
+  validateEditProduct,
   editProduct
 );
 router.get("/get-products", verifyToken, verifyRole("vendor"), getProducts);
