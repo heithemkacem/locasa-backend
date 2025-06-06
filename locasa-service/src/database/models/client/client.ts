@@ -10,7 +10,7 @@ export interface IClient extends Document {
   favorite_vendors: Schema.Types.ObjectId[];
   favorite_products: Schema.Types.ObjectId[];
   phone_number: string;
-  location: Schema.Types.ObjectId;
+  location: Schema.Types.ObjectId[];
   phone_number_verified: boolean;
   notifications: [
     {
@@ -42,7 +42,7 @@ const clientSchema = new Schema<IClient>(
     favorite_products: {
       product: { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
     },
-    location: { type: mongoose.Schema.Types.ObjectId, ref: "Location" },
+    location: [{ type: mongoose.Schema.Types.ObjectId, ref: "Location" }],
     phone_number: { type: String }, // Phone number field
     phone_number_verified: { type: Boolean, default: false }, // Flag indicating whether the phone number has been verified
     notifications: [
