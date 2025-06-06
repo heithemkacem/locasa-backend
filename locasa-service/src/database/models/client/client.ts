@@ -7,7 +7,7 @@ export interface IClient extends Document {
   activities: any[]; // Activities can hold any type of data
   email: string;
   points: number;
-  favorite_vendors: Schema.Types.ObjectId[];
+  favorite_brands: Schema.Types.ObjectId[];
   favorite_products: Schema.Types.ObjectId[];
   phone_number: string;
   location: Schema.Types.ObjectId[];
@@ -36,8 +36,8 @@ const clientSchema = new Schema<IClient>(
     },
     points: { type: Number, default: 0 },
     activities: [{ type: Schema.Types.Mixed }], // Accepts any type of data
-    favorite_vendors: {
-      vendor: { type: mongoose.Schema.Types.ObjectId, ref: "Vendor" },
+    favorite_brands: {
+      vendor: { type: mongoose.Schema.Types.ObjectId, ref: "Brand" },
     },
     favorite_products: {
       product: { type: mongoose.Schema.Types.ObjectId, ref: "Product" },

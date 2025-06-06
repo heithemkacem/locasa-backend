@@ -1,10 +1,34 @@
 import { Router } from "express";
 import { verifyRole, verifyToken } from "../middleware";
-
-import { deleteAccount } from "../controllers/client-controller";
+import {
+  validateAddLocation,
+  validateUpdateLocation,
+  validateAddToWishlist,
+  validateAddReview,
+  validateMarkNotificationAsRead,
+} from "../middleware/client_dto";
+import {
+  deleteAccount,
+  getBrands,
+  getProducts,
+  getBrand,
+  getBrandProducts,
+  getProduct,
+  getWishlist,
+  addToWishlist,
+  getNotifications,
+  markNotificationAsRead,
+  addLocation,
+  getLocations,
+  removeLocation,
+  updateLocation,
+  addReview,
+  getReviews,
+} from "../controllers/client-controller";
 
 const router = Router();
 
+// Account Management
 router.post(
   "/delete-account",
   verifyToken,
@@ -12,20 +36,79 @@ router.post(
   deleteAccount
 );
 
-router.get("get-brands");
-router.get("/get-products");
-router.get("/get-brand/:id");
-router.get("/get-brand-products/:id");
-router.get("/get-product/:id");
-router.get("/get-wishlist"); // return the favorites brands and products
-router.post("/add-to-wishlist"); // add a brand or a product to wishlist
-router.get("get-notifications"); // get all notifications for user
-router.post("mark-notification-as-read"); // mark notification as read
-router.post("add-location"); // add new location
-router.get("get-locations"); // get all locations for that user
-router.delete("remove-location/:locationId"); // remove location by id
-router.put("update-location/:locationId"); // update location by id
-router.post("add-review"); // add review to brand
-router.get("get-reviews/:brand_id"); // get reviews for brand
+// Brand & Product Routes
+router.get("/get-brands", verifyToken, verifyRole("client"), getBrands);
+router.get("/get-products", verifyToken, verifyRole("client"), getProducts);
+router.get("/get-brand/:id", verifyToken, verifyRole("client"), getBrand);
+router.get(
+  "/get-brand-products/:id",
+  verifyToken,
+  verifyRole("client"),
+  getBrandProducts
+);
+router.get("/get-product/:id", verifyToken, verifyRole("client"), getProduct);
+
+// Wishlist Routes
+router.get("/get-wishlist", verifyToken, verifyRole("client"), getWishlist);
+router.post(
+  "/add-to-wishlist",
+  verifyToken,
+  verifyRole("client"),
+  validateAddToWishlist,
+  addToWishlist
+);
+
+// Notification Routes
+router.get(
+  "/get-notifications",
+  verifyToken,
+  verifyRole("client"),
+  getNotifications
+);
+router.post(
+  "/mark-notification-as-read",
+  verifyToken,
+  verifyRole("client"),
+  validateMarkNotificationAsRead,
+  markNotificationAsRead
+);
+
+// Location Routes
+router.post(
+  "/add-location",
+  verifyToken,
+  verifyRole("client"),
+  validateAddLocation,
+  addLocation
+);
+router.get("/get-locations", verifyToken, verifyRole("client"), getLocations);
+router.delete(
+  "/remove-location/:locationId",
+  verifyToken,
+  verifyRole("client"),
+  removeLocation
+);
+router.put(
+  "/update-location/:locationId",
+  verifyToken,
+  verifyRole("client"),
+  validateUpdateLocation,
+  updateLocation
+);
+
+// Review Routes
+router.post(
+  "/add-review",
+  verifyToken,
+  verifyRole("client"),
+  validateAddReview,
+  addReview
+);
+router.get(
+  "/get-reviews/:brand_id",
+  verifyToken,
+  verifyRole("client"),
+  getReviews
+);
 
 export default router;

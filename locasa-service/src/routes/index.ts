@@ -4,8 +4,8 @@ import clientRouter from "./client_routes";
 import vendorRouter from "./vendor_routes";
 const router = express.Router();
 
-router.use("/", profileRouter);
-router.use("/", clientRouter);
-router.use("/", vendorRouter);
+router.use("/profile", profileRouter);
+router.use("/client", clientRouter);
+router.use("/vendor", vendorRouter);
 
 export default router;
