@@ -23,6 +23,7 @@ export const getPaginationOptions = (req: Request): PaginationOptions => {
   return { page, limit };
 };
 
+// Original function for Mongoose queries
 export const paginateQuery = async <T>(
   query: any,
   options: PaginationOptions
@@ -35,6 +36,29 @@ export const paginateQuery = async <T>(
     query.model.countDocuments(query.getQuery()),
   ]);
 
+  const totalPages = Math.ceil(totalItems / limit);
+
+  return {
+    items,
+    totalItems,
+    currentPage: page,
+    totalPages,
+    hasNextPage: page < totalPages,
+    hasPreviousPage: page > 1,
+  };
+};
+
+// New function for arrays
+export const paginateArray = <T>(
+  array: T[],
+  options: PaginationOptions
+): PaginationResult<T> => {
+  const { page = 1, limit = 10 } = options;
+  const startIndex = (page - 1) * limit;
+  const endIndex = startIndex + limit;
+
+  const items = array.slice(startIndex, endIndex);
+  const totalItems = array.length;
   const totalPages = Math.ceil(totalItems / limit);
 
   return {

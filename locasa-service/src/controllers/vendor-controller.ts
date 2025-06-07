@@ -2,7 +2,11 @@ import { Request, Response } from "express";
 import mongoose from "mongoose";
 import { Brand, Product, Order, Location, Vendor } from "../database";
 import { successResponse, errorResponse } from "../utils";
-import { getPaginationOptions, paginateQuery } from "../utils/pagination";
+import {
+  getPaginationOptions,
+  paginateArray,
+  paginateQuery,
+} from "../utils/pagination";
 
 // Brand Controllers
 export const addBrand = async (req: Request, res: Response) => {
@@ -82,24 +86,41 @@ export const editBrand = async (req: Request, res: Response) => {
     return errorResponse(res, "backend.failed_to_update_brand", 500);
   }
 };
-
 export const getBrands = async (req: Request, res: Response) => {
   try {
     const vendorId = req.user?.user_id;
     const paginationOptions = getPaginationOptions(req);
 
-    const query = Brand.find({ vendor: vendorId })
-      .populate("location")
-      .sort({ createdAt: -1 });
+    const vendor = await Vendor.findById(vendorId).populate({
+      path: "brands",
+      populate: {
+        path: "products",
+        select: "_id", // Only select _id to minimize data transfer
+      },
+      select: "_id name logo products", // Only select needed fields from brands
+    });
 
-    const result = await paginateQuery(query, paginationOptions);
+    if (!vendor) {
+      return errorResponse(res, "backend.vendor_not_found", 404);
+    }
+
+    // Transform brands data to include product count
+    const brandsWithProductCount = vendor.brands.map((brand) => ({
+      _id: brand._id, // Fixed: should be _id, not *id
+      name: brand.name,
+      logo: brand.logo,
+      numberOfProducts: brand.products ? brand.products.length : 0,
+    }));
+
+    // Use paginateArray for JavaScript arrays
+    const result = paginateArray(brandsWithProductCount, paginationOptions);
+
     return successResponse(res, "backend.brands_found", result);
   } catch (error) {
     console.error("Error fetching brands:", error);
     return errorResponse(res, "backend.failed_to_fetch_brands", 500);
   }
 };
-
 export const getBrand = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;

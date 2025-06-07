@@ -10,10 +10,6 @@ import cors from "cors";
 import cron from "node-cron";
 import { syncTypeSense } from "./database/scripts/syncTypeSense";
 
-cron.schedule("0 */8 * * *", () => {
-  console.log("⏰ Running sync to Typesense every 8 hours");
-  syncTypeSense();
-});
 const app: Express = express();
 let server: Server;
 // Enable CORS for all routes
@@ -42,6 +38,10 @@ const initializeRabbitMQClient = async () => {
 
 initializeRabbitMQClient();
 
+cron.schedule("0 */8 * * *", () => {
+  console.log("⏰ Running sync to Typesense every 8 hours");
+  syncTypeSense();
+});
 const unexpectedErrorHandler = (error: unknown) => {
   console.error(error);
 };

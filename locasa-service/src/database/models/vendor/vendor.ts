@@ -1,9 +1,10 @@
 import mongoose, { Schema, Document } from "mongoose";
+import { IBrand } from "../brand/brand";
 
 // Interface for TypeScript typing
 export interface IVendor extends Document {
   profile: mongoose.Types.ObjectId;
-  brands: mongoose.Types.ObjectId[];
+  brands: IBrand[];
   name: string;
   email: string;
   location: mongoose.Types.ObjectId;
