@@ -7,12 +7,32 @@ import {
   paginateArray,
   paginateQuery,
 } from "../utils/pagination";
+import { s3Client } from "../config/aws";
+import { PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
+import config from "../config/config";
 
 // Brand Controllers
 export const addBrand = async (req: Request, res: Response) => {
   try {
     const vendorId = req.user?.user_id;
     const { location: locationData, ...brandDetails } = req.body;
+
+    // Handle logo upload if present
+    let logoUrl;
+    if (req.file) {
+      const fileExt = req.file.originalname.split(".").pop();
+      const key = `brands/${vendorId}/${Date.now()}.${fileExt}`;
+
+      const command = new PutObjectCommand({
+        Bucket: config.AWS_BUCKET_NAME,
+        Key: key,
+        Body: req.file.buffer,
+        ContentType: req.file.mimetype,
+      });
+
+      await s3Client.send(command);
+      logoUrl = `https://${config.AWS_BUCKET_NAME}.s3.${config.AWS_REGION}.amazonaws.com/${key}`;
+    }
 
     // First create the location
     const locationDoc = await Location.create({
@@ -26,6 +46,7 @@ export const addBrand = async (req: Request, res: Response) => {
       ...brandDetails,
       vendor: vendorId,
       location: locationDoc._id,
+      logo: logoUrl || brandDetails.logo, // Use uploaded logo URL if available
     };
 
     const brand = await Brand.create(brandData);
@@ -59,6 +80,42 @@ export const editBrand = async (req: Request, res: Response) => {
       return errorResponse(res, "backend.brand_not_found", 404);
     }
 
+    // Handle logo upload if present
+    let logoUrl = brandDetails.logo;
+    if (req.file) {
+      // Delete old logo if it exists
+      if (existingBrand.logo) {
+        try {
+          // Extract the key from the existing logo URL
+          const oldLogoUrl = new URL(existingBrand.logo);
+          const oldKey = oldLogoUrl.pathname.substring(1); // Remove leading slash
+
+          const deleteCommand = new DeleteObjectCommand({
+            Bucket: config.AWS_BUCKET_NAME,
+            Key: oldKey,
+          });
+          await s3Client.send(deleteCommand);
+        } catch (error) {
+          console.error("Error deleting old logo:", error);
+          // Continue execution even if delete fails
+        }
+      }
+
+      // Upload new logo
+      const fileExt = req.file.originalname.split(".").pop();
+      const key = `brands/${vendorId}/${Date.now()}.${fileExt}`;
+
+      const command = new PutObjectCommand({
+        Bucket: config.AWS_BUCKET_NAME,
+        Key: key,
+        Body: req.file.buffer,
+        ContentType: req.file.mimetype,
+      });
+
+      await s3Client.send(command);
+      logoUrl = `https://${config.AWS_BUCKET_NAME}.s3.${config.AWS_REGION}.amazonaws.com/${key}`;
+    }
+
     // If location data is provided, update the location
     if (locationData) {
       await Location.findByIdAndUpdate(
@@ -73,10 +130,15 @@ export const editBrand = async (req: Request, res: Response) => {
       );
     }
 
-    // Update the brand
+    // Update the brand with new logo URL if present
     const brand = await Brand.findByIdAndUpdate(
       id,
-      { $set: brandDetails },
+      {
+        $set: {
+          ...brandDetails,
+          logo: logoUrl,
+        },
+      },
       { new: true }
     ).populate("location");
 
@@ -90,7 +152,7 @@ export const getBrands = async (req: Request, res: Response) => {
   try {
     const vendorId = req.user?.user_id;
     const paginationOptions = getPaginationOptions(req);
-
+    console.log(req.user);
     const vendor = await Vendor.findById(vendorId).populate({
       path: "brands",
       populate: {
@@ -125,19 +187,19 @@ export const getBrand = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const vendorId = req.user?.user_id;
+    const brand = await Brand.findOne({ _id: id, vendor: vendorId })
+      .populate("products")
+      .populate("location");
 
-    const brand = await Brand.findOne({ _id: id, vendor: vendorId });
     if (!brand) {
       return errorResponse(res, "backend.brand_not_found", 404);
     }
-
     return successResponse(res, "backend.brand_found", { brand });
   } catch (error) {
     console.error("Error fetching brand:", error);
     return errorResponse(res, "backend.failed_to_fetch_brand", 500);
   }
 };
-
 export const deleteBrand = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -259,7 +321,11 @@ export const getProducts = async (req: Request, res: Response) => {
     const paginationOptions = getPaginationOptions(req);
 
     const query = Product.find({ vendor: vendorId })
-      .populate("brand")
+      .select("_id name brand images") // Only select id and name from Product
+      .populate({
+        path: "brand",
+        select: "name", // Only select name from Brand
+      })
       .sort({ createdAt: -1 });
 
     const result = await paginateQuery(query, paginationOptions);
@@ -269,7 +335,6 @@ export const getProducts = async (req: Request, res: Response) => {
     return errorResponse(res, "backend.failed_to_fetch_products", 500);
   }
 };
-
 export const getProductsByBrand = async (req: Request, res: Response) => {
   try {
     const { brand_id } = req.params;

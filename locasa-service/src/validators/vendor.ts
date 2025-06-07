@@ -9,9 +9,7 @@ export const addBrandSchema = Joi.object({
   description: Joi.string().optional().allow("").messages({
     "string.base": "backend.brand_description_must_be_string",
   }),
-  logo: Joi.string().optional().allow("").messages({
-    "string.base": "backend.brand_logo_must_be_string",
-  }),
+  // Logo is handled by multer middleware
   website: Joi.string().optional().allow("").messages({
     "string.base": "backend.brand_website_must_be_string",
   }),

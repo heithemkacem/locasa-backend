@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { verifyRole, verifyToken } from "../middleware";
+import { upload } from "../config/aws";
 import {
   validateAddBrand,
   validateEditBrand,
@@ -32,6 +33,7 @@ router.post(
   "/add-brand",
   verifyToken,
   verifyRole("vendor"),
+  upload.single("logo"),
   validateAddBrand,
   addBrand
 );
@@ -39,6 +41,7 @@ router.post(
   "/edit-brand/:id",
   verifyToken,
   verifyRole("vendor"),
+  upload.single("logo"),
   validateEditBrand,
   editBrand
 );

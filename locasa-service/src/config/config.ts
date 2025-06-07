@@ -12,7 +12,7 @@ const {
   AWS_ACCESS_KEY_ID,
   AWS_SECRET_ACCESS_KEY,
   AWS_REGION,
-  AWS_ACCESS_POINT,
+  AWS_BUCKET_NAME,
 } = process.env;
 const queue = {
   notifications: "NOTIFICATIONS",
@@ -29,6 +29,6 @@ export default {
   AWS_ACCESS_KEY_ID,
   AWS_SECRET_ACCESS_KEY,
   AWS_REGION,
-  AWS_ACCESS_POINT,
+  AWS_BUCKET_NAME,
   queue,
 };
