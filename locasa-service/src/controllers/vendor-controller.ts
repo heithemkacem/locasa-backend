@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import mongoose from "mongoose";
-import { Brand, Product, Order, Location, Vendor } from "../database";
+import { Brand, Product, Order, Location, Vendor, Category } from "../database";
 import { successResponse, errorResponse } from "../utils";
 import {
   getPaginationOptions,
@@ -222,32 +222,29 @@ export const deleteBrand = async (req: Request, res: Response) => {
       return errorResponse(res, "backend.brand_not_found", 404);
     }
 
-    // Start a transaction for atomicity
-    const session = await mongoose.startSession();
-    await session.withTransaction(async () => {
+    // Delete operations sequentially (without transaction)
+    try {
       // Delete associated products
-      await Product.deleteMany({ brand: id }, { session });
+      await Product.deleteMany({ brand: id });
 
       // Delete the associated location
       if (brand.location) {
-        await Location.findByIdAndDelete(brand.location, { session });
+        await Location.findByIdAndDelete(brand.location);
       }
 
       // Remove brand from vendor's brands array
-      await Vendor.findByIdAndUpdate(
-        vendorId,
-        {
-          $pull: { brands: id },
-        },
-        { session }
-      );
+      await Vendor.findByIdAndUpdate(vendorId, {
+        $pull: { brands: id },
+      });
 
       // Delete the brand
-      await Brand.findByIdAndDelete(id, { session });
-    });
-    await session.endSession();
+      await Brand.findByIdAndDelete(id);
 
-    return successResponse(res, "backend.brand_deleted");
+      return successResponse(res, "backend.brand_deleted");
+    } catch (deleteError) {
+      console.error("Error during brand deletion operations:", deleteError);
+      return errorResponse(res, "backend.failed_to_delete_brand", 500);
+    }
   } catch (error) {
     console.error("Error deleting brand:", error);
     return errorResponse(res, "backend.failed_to_delete_brand", 500);
@@ -422,7 +419,28 @@ export const getOrders = async (req: Request, res: Response) => {
     return errorResponse(res, "backend.failed_to_fetch_orders", 500);
   }
 };
+export const getCategories = async (req: Request, res: Response) => {
+  try {
+    const paginationOptions = getPaginationOptions(req);
 
+    const query = Category.find();
+
+    const result = await paginateQuery(query, paginationOptions);
+    return successResponse(res, "backend.categories_found", result);
+  } catch (error) {
+    console.error("Error fetching categories:", error);
+    return errorResponse(res, "backend.failed_to_fetch_categories", 500);
+  }
+};
+export const getCategoriesList = async (req: Request, res: Response) => {
+  try {
+    const result = await Category.find(); // Added 'await' here
+    return successResponse(res, "backend.categories_found", result);
+  } catch (error) {
+    console.error("Error fetching categories:", error);
+    return errorResponse(res, "backend.failed_to_fetch_categories", 500);
+  }
+};
 export const getOrdersByBrand = async (req: Request, res: Response) => {
   try {
     const { brand_id } = req.params;

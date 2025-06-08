@@ -24,6 +24,8 @@ import {
   updateOrderStatus,
   getOrder,
   getBrands,
+  getCategories,
+  getCategoriesList,
 } from "../controllers/vendor-controller";
 
 const router = Router();
@@ -100,5 +102,12 @@ router.delete(
   verifyRole("vendor"),
   deleteProduct
 );
-
+// Category routes
+router.get("/get-categories", verifyToken, verifyRole("vendor"), getCategories);
+router.get(
+  "/get-categories-list",
+  verifyToken,
+  verifyRole("vendor"),
+  getCategoriesList
+);
 export default router;

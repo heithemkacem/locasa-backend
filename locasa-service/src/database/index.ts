@@ -13,6 +13,8 @@ import Notification, {
   INotification,
 } from "./models/notification/notification";
 import Location, { ILocation } from "./models/location/location";
+import Category, { ICategory } from "./models/category/category";
+
 export {
   connectDB,
   Profile,
@@ -37,4 +39,6 @@ export {
   IOrder,
   Review,
   IReview,
+  Category,
+  ICategory,
 };
