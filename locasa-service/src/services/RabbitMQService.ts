@@ -46,23 +46,26 @@ class RabbitMQService {
     image?: string,
     data?: object
   ) {
-    await this.channel.assertQueue(config.queue.notifications); // Double-check
+    console.log('Sending notification for receiver:', receiverId);
     const notificationPayload = {
       userId: receiverId,
-      message: message,
-      title: title,
-      image: image ? image : "",
+      message,
+      title,
+      image: image || "",
       data: data || {},
     };
 
     try {
       await this.channel.assertQueue(config.queue.notifications);
+      console.log('Sending notification payload:', notificationPayload);
       this.channel.sendToQueue(
         config.queue.notifications,
         Buffer.from(JSON.stringify(notificationPayload))
       );
+      console.log('Notification sent to queue successfully');
     } catch (error) {
-      console.error(error);
+      console.error('Failed to send notification:', error);
+      throw error;
     }
   }
 }

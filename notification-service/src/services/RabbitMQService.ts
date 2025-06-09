@@ -25,32 +25,44 @@ class RabbitMQService {
     await this.consumeSMSNotifications();
   }
   async consumeNotification() {
+    console.log('Setting up consumer for notifications queue');
     this.channel.consume(config.queue.notifications, async (msg) => {
-      if (msg) {
-        try {
-          const { userId, message, title, data, image } = JSON.parse(
-            msg.content.toString()
-          );
-          console.log("userId", userId);
-          console.log("title", title);
-          console.log("message", message);
-          console.log("data", data);
-          console.log("image", image);
-          await this.expoPushService.sendPushNotification(
-            userId,
-            title,
-            message,
-            data,
-            image
-          );
+      if (!msg) {
+        console.log('Received null message');
+        return;
+      }
 
-          this.channel.ack(msg);
-        } catch (error) {
-          console.error("Error processing notification:", error);
-          this.channel.nack(msg); // Or handle accordingly
-        }
+      try {
+        console.log('Received message:', msg.content.toString());
+        const { userId, message, title, data, image } = JSON.parse(
+          msg.content.toString()
+        );
+        
+        console.log('Processing notification:', {
+          userId,
+          title,
+          message,
+          data,
+          image
+        });
+
+        await this.expoPushService.sendPushNotification(
+          userId,
+          title,
+          message,
+          data,
+          image
+        );
+
+        console.log('Successfully sent push notification');
+        this.channel.ack(msg);
+      } catch (error) {
+        console.error('Error processing notification:', error);
+        // Don't requeue the message if it's malformed
+        this.channel.nack(msg, false, false);
       }
     });
+    console.log('Notification consumer setup complete');
   }
   async consumeEmailNotifications() {
     this.channel.consume(config.queue.emailQueue, async (msg) => {
