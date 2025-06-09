@@ -10,6 +10,7 @@ import {
 import { s3Client } from "../config/aws";
 import { PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import config from "../config/config";
+import { rabbitMQService } from "../services/RabbitMQService";
 
 // Brand Controllers
 export const addBrand = async (req: Request, res: Response) => {
@@ -55,7 +56,18 @@ export const addBrand = async (req: Request, res: Response) => {
     await Vendor.findByIdAndUpdate(vendorId, {
       $push: { brands: brand._id },
     });
-
+    console.log("test");
+    await rabbitMQService.notifyReceiver(
+      "6844617559e672cbf667ebe9",
+      "New brand has joined !",
+      `${brand.name} has joined us!`,
+      "https://www.adobe.com/ie/creativecloud/design/discover/media_1c66507b68db7c7927c0f978345701fe0b2200583.png?width=750&format=png&optimize=medium",
+      {
+        url: {
+          pathname: "/(vendor)/chat",
+        },
+      }
+    );
     return successResponse(res, "backend.brand_created", {
       brand: {
         ...brand.toObject(),
@@ -141,7 +153,21 @@ export const editBrand = async (req: Request, res: Response) => {
       },
       { new: true }
     ).populate("location");
-
+    if (!brand) {
+      return errorResponse(res, "backend.failed_to_find_brand", 400);
+    }
+    console.log("test");
+    await rabbitMQService.notifyReceiver(
+      "6844617559e672cbf667ebe9",
+      "New brand has joined !",
+      `${brand.name} has joined us!`,
+      "https://www.adobe.com/ie/creativecloud/design/discover/media_1c66507b68db7c7927c0f978345701fe0b2200583.png?width=750&format=png&optimize=medium",
+      {
+        url: {
+          pathname: "/(vendor)/chat",
+        },
+      }
+    );
     return successResponse(res, "backend.brand_updated", { brand });
   } catch (error) {
     console.error("Error updating brand:", error);

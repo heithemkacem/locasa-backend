@@ -1,6 +1,5 @@
 import amqp, { Channel, Connection } from "amqplib";
 import config from "../config/config";
-import { v4 as uuidv4 } from "uuid";
 class RabbitMQService {
   private correlationMap = new Map<
     string,
@@ -27,22 +26,6 @@ class RabbitMQService {
       this.channel = await this.connection.createChannel();
       await this.channel.assertQueue(config.queue.notifications);
       await this.channel.assertQueue(config.queue.emailQueue);
-      await this.channel.assertQueue(config.queue.request);
-      await this.channel.assertQueue(config.queue.response);
-      this.channel.consume(config.queue.response, (msg) => {
-        if (msg) {
-          const correlationId = msg.properties.correlationId;
-          const { count, connected, latestMessageAt } = JSON.parse(
-            msg.content.toString()
-          );
-          const resolver = this.correlationMap.get(correlationId);
-          if (resolver) {
-            resolver({ count, connected, latestMessageAt });
-            this.correlationMap.delete(correlationId);
-          }
-          this.channel.ack(msg);
-        }
-      });
     } catch (error) {
       console.error("Failed to initialize RabbitMQ connection:", error);
     }
@@ -60,14 +43,16 @@ class RabbitMQService {
     receiverId: string,
     title: string,
     message: string,
-    type: string
+    image?: string,
+    data?: object
   ) {
     await this.channel.assertQueue(config.queue.notifications); // Double-check
     const notificationPayload = {
       userId: receiverId,
       message: message,
       title: title,
-      type: type,
+      image: image ? image : "",
+      data: data || {},
     };
 
     try {

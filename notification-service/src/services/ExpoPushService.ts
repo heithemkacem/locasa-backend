@@ -18,7 +18,8 @@ export class ExpoPushService {
     userId: string | string[], // Allows single token or list of tokens
     title: string,
     body: string,
-    data?: Record<string, unknown>
+    data?: Record<string, unknown>,
+    image?: string
   ): Promise<void> {
     const messages: ExpoPushMessage[] = [];
 
@@ -46,7 +47,8 @@ export class ExpoPushService {
         title,
         body,
         data: data || {},
-      });
+        image: image || "",
+      } as any);
     }
 
     if (messages.length === 0) {

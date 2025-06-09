@@ -23,7 +23,6 @@ const queue = {
   notifications: "NOTIFICATIONS",
   emailQueue: "EMAIL_NOTIFICATION_QUEUE",
   smsQueue: "SMS_NOTIFICATION_QUEUE",
-  sendNotificationQueue: "SEND_NOTIFICATION_QUEUE",
 };
 
 export default {

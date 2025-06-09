@@ -17,8 +17,6 @@ const {
 const queue = {
   notifications: "NOTIFICATIONS",
   emailQueue: "EMAIL_NOTIFICATION_QUEUE",
-  request: "GET_MESSAGES_DATA",
-  response: "MESSAGES_DATA_RESPONSE_QUEUE",
 };
 export default {
   MONGO_URI,

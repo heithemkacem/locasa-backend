@@ -20,28 +20,28 @@ class RabbitMQService {
     await this.channel.assertQueue(config.queue.notifications);
     await this.channel.assertQueue(config.queue.emailQueue);
     await this.channel.assertQueue(config.queue.smsQueue);
-    await this.channel.assertQueue(config.queue.sendNotificationQueue);
     await this.consumeNotification();
     await this.consumeEmailNotifications();
     await this.consumeSMSNotifications();
-    await this.consumeSendNotification();
   }
   async consumeNotification() {
     this.channel.consume(config.queue.notifications, async (msg) => {
       if (msg) {
         try {
-          const { userId, message, title, data } = JSON.parse(
+          const { userId, message, title, data, image } = JSON.parse(
             msg.content.toString()
           );
           console.log("userId", userId);
           console.log("title", title);
           console.log("message", message);
           console.log("data", data);
+          console.log("image", image);
           await this.expoPushService.sendPushNotification(
             userId,
             title,
             message,
-            data
+            data,
+            image
           );
 
           this.channel.ack(msg);
@@ -68,17 +68,6 @@ class RabbitMQService {
         const { to, message } = JSON.parse(msg.content.toString());
         await this.twillioService.sendSMS(to, message);
         console.log(`SMS sent to ${to}`);
-        this.channel.ack(msg);
-      }
-    });
-  }
-
-  async consumeSendNotification() {
-    this.channel.consume(config.queue.sendNotificationQueue, async (msg) => {
-      if (msg) {
-        const { to, title, body, data } = JSON.parse(msg.content.toString());
-        console.log(to, title, body, data);
-        await this.expoPushService.sendPushNotification(to, title, body, data);
         this.channel.ack(msg);
       }
     });
