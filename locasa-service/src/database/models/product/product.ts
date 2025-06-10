@@ -32,12 +32,6 @@ const productSchema = new Schema<IProduct>(
       required: true,
     },
     images: [{ type: String }],
-    colors: [{ type: String }],
-    sizes: [{ type: String }], // optional for categories like clothes
-    details: {
-      type: Schema.Types.Mixed, // flexible key/value depending on category
-      default: {},
-    },
   },
   { timestamps: true }
 );

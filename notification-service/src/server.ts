@@ -26,7 +26,6 @@ const initializeRabbitMQClient = async () => {
 };
 
 initializeRabbitMQClient();
-
 const unexpectedErrorHandler = (error: unknown) => {
   console.error(error);
 };

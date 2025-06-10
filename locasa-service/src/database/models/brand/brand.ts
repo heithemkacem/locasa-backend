@@ -6,7 +6,6 @@ export interface IBrand extends Document {
   name: string;
   description: string;
   logo: string;
-  website: string;
   email: string;
   phone: string;
   location: Types.ObjectId;
@@ -39,10 +38,7 @@ const brandSchema = new Schema<IBrand>(
       type: String,
       default: "",
     },
-    website: {
-      type: String,
-      default: "",
-    },
+
     email: {
       type: String,
       default: "",
