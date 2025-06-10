@@ -56,6 +56,37 @@ router.delete(
   deleteBrand
 );
 
+//Product routers
+
+// Product routes
+router.post(
+  "/add-product",
+  verifyToken,
+  verifyRole("vendor"),
+  validateAddProduct,
+  addProduct
+);
+router.post(
+  "/edit-product/:id",
+  verifyToken,
+  verifyRole("vendor"),
+  validateEditProduct,
+  editProduct
+);
+router.get("/get-products", verifyToken, verifyRole("vendor"), getProducts);
+router.get(
+  "/get-products/:brand_id",
+  verifyToken,
+  verifyRole("vendor"),
+  getProductsByBrand
+);
+router.get("/get-product/:id", verifyToken, verifyRole("vendor"), getProduct);
+router.delete(
+  "/delete-product/:id",
+  verifyToken,
+  verifyRole("vendor"),
+  deleteProduct
+);
 // Order routes
 router.get("/get-orders", verifyToken, verifyRole("vendor"), getOrders);
 router.get(

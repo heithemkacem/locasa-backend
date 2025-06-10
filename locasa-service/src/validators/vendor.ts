@@ -145,15 +145,6 @@ export const addProductSchema = Joi.object({
   images: Joi.array().items(Joi.string()).optional().messages({
     "array.base": "backend.product_images_must_be_array",
   }),
-  colors: Joi.array().items(Joi.string()).optional().messages({
-    "array.base": "backend.product_colors_must_be_array",
-  }),
-  sizes: Joi.array().items(Joi.string()).optional().messages({
-    "array.base": "backend.product_sizes_must_be_array",
-  }),
-  details: Joi.object().optional().messages({
-    "object.base": "backend.product_details_must_be_object",
-  }),
 }).messages({
   "object.unknown": "backend.unexpected_field_detected",
 });
@@ -184,15 +175,6 @@ export const editProductSchema = Joi.object({
     }),
   images: Joi.array().items(Joi.string()).optional().messages({
     "array.base": "backend.product_images_must_be_array",
-  }),
-  colors: Joi.array().items(Joi.string()).optional().messages({
-    "array.base": "backend.product_colors_must_be_array",
-  }),
-  sizes: Joi.array().items(Joi.string()).optional().messages({
-    "array.base": "backend.product_sizes_must_be_array",
-  }),
-  details: Joi.object().optional().messages({
-    "object.base": "backend.product_details_must_be_object",
   }),
 }).messages({
   "object.unknown": "backend.unexpected_field_detected",
