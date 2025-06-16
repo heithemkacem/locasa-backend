@@ -9,7 +9,7 @@ export interface IBrand extends Document {
   email: string;
   phone: string;
   location: Types.ObjectId;
-  category: string;
+  category: Types.ObjectId;
   reviews: Types.ObjectId[];
   reviewsCount: number;
   rating: number;
@@ -53,7 +53,8 @@ const brandSchema = new Schema<IBrand>(
       required: true,
     },
     category: {
-      type: String,
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Category",
       required: true,
     },
     reviews: [

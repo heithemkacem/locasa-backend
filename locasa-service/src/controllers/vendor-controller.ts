@@ -202,7 +202,8 @@ export const getBrand = async (req: Request, res: Response) => {
     const vendorId = req.user?.user_id;
     const brand = await Brand.findOne({ _id: id, vendor: vendorId })
       .populate("products")
-      .populate("location");
+      .populate("location")
+      .populate("category");
 
     if (!brand) {
       return errorResponse(res, "backend.brand_not_found", 404);
@@ -280,7 +281,34 @@ export const addProduct = async (req: Request, res: Response) => {
       return errorResponse(res, "backend.invalid_brand", 400);
     }
 
-    const product = await Product.create(productData);
+    // Handle image uploads
+    const imageUrls: string[] = [];
+    if (req.files && Array.isArray(req.files)) {
+      for (const file of req.files) {
+        const fileExt = file.originalname.split(".").pop();
+        const key = `products/${vendorId}/${Date.now()}-${Math.random()
+          .toString(36)
+          .substring(7)}.${fileExt}`;
+
+        const command = new PutObjectCommand({
+          Bucket: config.AWS_BUCKET_NAME,
+          Key: key,
+          Body: file.buffer,
+          ContentType: file.mimetype,
+        });
+
+        await s3Client.send(command);
+        const imageUrl = `https://${config.AWS_BUCKET_NAME}.s3.${config.AWS_REGION}.amazonaws.com/${key}`;
+        imageUrls.push(imageUrl);
+      }
+    }
+
+    // Create product with image URLs
+    const product = await Product.create({
+      ...productData,
+      images: imageUrls,
+    });
+
     await Brand.findByIdAndUpdate(productData.brand, {
       $push: { products: product._id },
     });
@@ -297,6 +325,15 @@ export const editProduct = async (req: Request, res: Response) => {
     const { id } = req.params;
     const vendorId = req.user?.user_id;
 
+    // First find the existing product
+    const existingProduct = await Product.findOne({
+      _id: id,
+      vendor: vendorId,
+    });
+    if (!existingProduct) {
+      return errorResponse(res, "backend.product_not_found", 404);
+    }
+
     // If changing brand, verify new brand belongs to vendor
     if (req.body.brand) {
       const brand = await Brand.findOne({
@@ -308,9 +345,53 @@ export const editProduct = async (req: Request, res: Response) => {
       }
     }
 
+    // Handle image uploads if present
+    let imageUrls = existingProduct.images || [];
+    if (req.files && Array.isArray(req.files)) {
+      // Delete existing images from S3
+      for (const imageUrl of imageUrls) {
+        try {
+          const oldUrlObj = new URL(imageUrl);
+          const oldKey = oldUrlObj.pathname.substring(1);
+          const deleteCommand = new DeleteObjectCommand({
+            Bucket: config.AWS_BUCKET_NAME,
+            Key: oldKey,
+          });
+          await s3Client.send(deleteCommand);
+        } catch (error) {
+          console.error("Error deleting old image:", error);
+        }
+      }
+
+      // Upload new images
+      imageUrls = [];
+      for (const file of req.files) {
+        const fileExt = file.originalname.split(".").pop();
+        const key = `products/${vendorId}/${Date.now()}-${Math.random()
+          .toString(36)
+          .substring(7)}.${fileExt}`;
+
+        const command = new PutObjectCommand({
+          Bucket: config.AWS_BUCKET_NAME,
+          Key: key,
+          Body: file.buffer,
+          ContentType: file.mimetype,
+        });
+
+        await s3Client.send(command);
+        const imageUrl = `https://${config.AWS_BUCKET_NAME}.s3.${config.AWS_REGION}.amazonaws.com/${key}`;
+        imageUrls.push(imageUrl);
+      }
+    }
+
     const product = await Product.findOneAndUpdate(
       { _id: id, vendor: vendorId },
-      { $set: req.body },
+      {
+        $set: {
+          ...req.body,
+          images: imageUrls,
+        },
+      },
       { new: true }
     );
 
@@ -376,7 +457,7 @@ export const getProduct = async (req: Request, res: Response) => {
     const product = await Product.findOne({
       _id: id,
       vendor: vendorId,
-    }).populate("brand");
+    }).populate("brand category");
     if (!product) {
       return errorResponse(res, "backend.product_not_found", 404);
     }
@@ -421,8 +502,11 @@ export const getOrders = async (req: Request, res: Response) => {
 
     const query = Order.find({ "brand.vendor": vendorId })
       .populate("product")
+      .select("name")
       .populate("client")
+      .select("name phone")
       .populate("brand")
+      .select("name")
       .sort({ createdAt: -1 });
 
     const result = await paginateQuery(query, paginationOptions);
@@ -439,15 +523,6 @@ export const getCategories = async (req: Request, res: Response) => {
     const query = Category.find();
 
     const result = await paginateQuery(query, paginationOptions);
-    return successResponse(res, "backend.categories_found", result);
-  } catch (error) {
-    console.error("Error fetching categories:", error);
-    return errorResponse(res, "backend.failed_to_fetch_categories", 500);
-  }
-};
-export const getCategoriesList = async (req: Request, res: Response) => {
-  try {
-    const result = await Category.find(); // Added 'await' here
     return successResponse(res, "backend.categories_found", result);
   } catch (error) {
     console.error("Error fetching categories:", error);
@@ -513,7 +588,8 @@ export const getOrder = async (req: Request, res: Response) => {
     const order = await Order.findOne({ _id: id, "brand.vendor": vendorId })
       .populate("product")
       .populate("client")
-      .populate("brand");
+      .populate("brand")
+      .populate("location");
 
     if (!order) {
       return errorResponse(res, "backend.order_not_found", 404);

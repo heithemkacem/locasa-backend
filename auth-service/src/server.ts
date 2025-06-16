@@ -18,14 +18,9 @@ app.use("/auth", userRouter);
 app.use(errorConverter);
 app.use(errorHandler);
 
-connectDB();
-
-server = app.listen(config.PORT, () => {
-  console.log(`Server is running on port ${config.PORT}`);
-});
-
-const initializeRabbitMQClient = async () => {
+const start = async () => {
   try {
+    await connectDB();
     await rabbitMQService.init();
     console.log("RabbitMQ client initialized and listening for messages.");
   } catch (err) {
@@ -33,8 +28,10 @@ const initializeRabbitMQClient = async () => {
   }
 };
 
-initializeRabbitMQClient();
-
+start();
+server = app.listen(config.PORT, () => {
+  console.log(`Server is running on port ${config.PORT}`);
+});
 const unexpectedErrorHandler = (error: unknown) => {
   console.log(error);
 };

@@ -131,10 +131,7 @@ export const addProductSchema = Joi.object({
     "number.min": "backend.product_price_must_be_positive",
     "any.required": "backend.product_price_required",
   }),
-  promotionPrice: Joi.number().optional().min(0).messages({
-    "number.base": "backend.product_promotion_price_must_be_number",
-    "number.min": "backend.product_promotion_price_must_be_positive",
-  }),
+
   brand: Joi.string()
     .pattern(/^[0-9a-fA-F]{24}$/)
     .required()

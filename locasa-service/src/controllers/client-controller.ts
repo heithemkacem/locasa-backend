@@ -43,12 +43,8 @@ export const getBrands = async (req: Request, res: Response) => {
     const paginationOptions = getPaginationOptions(req);
 
     const query = Brand.find()
-      .populate("location")
-      .populate({
-        path: "reviews",
-        populate: { path: "client", select: "name avatar" },
-      })
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .select("name description logo");
 
     const result = await paginateQuery(query, paginationOptions);
     return successResponse(res, "backend.brands_found", result);
@@ -61,13 +57,9 @@ export const getBrands = async (req: Request, res: Response) => {
 export const getProducts = async (req: Request, res: Response) => {
   try {
     const paginationOptions = getPaginationOptions(req);
-
     const query = Product.find()
-      .populate({
-        path: "brand",
-        populate: { path: "location" },
-      })
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .select("name price images ");
 
     const result = await paginateQuery(query, paginationOptions);
     return successResponse(res, "backend.products_found", result);

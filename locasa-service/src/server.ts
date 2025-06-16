@@ -22,14 +22,9 @@ app.use(errorHandler);
 app.use(morgan("dev"));
 app.use("/locasa", routes);
 
-connectDB();
-
-server = app.listen(config.PORT, () => {
-  console.log(`Server is running on port ${config.PORT}`);
-});
-
-const initializeRabbitMQClient = async () => {
+const start = async () => {
   try {
+    await connectDB();
     await rabbitMQService.init();
     console.log("RabbitMQ client initialized and listening for messages.");
   } catch (err) {
@@ -37,7 +32,12 @@ const initializeRabbitMQClient = async () => {
   }
 };
 
-initializeRabbitMQClient();
+start();
+
+server = app.listen(config.PORT, () => {
+  console.log(`Server is running on port ${config.PORT}`);
+});
+
 cron.schedule("0 */8 * * *", () => {
   console.log("⏰ Running sync to Typesense every 8 hours");
   syncTypeSense();

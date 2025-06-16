@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { ExpoPushToken, Profile } from "../database";
+import { Category, ExpoPushToken, Profile } from "../database";
 import { errorResponse, successResponse } from "../utils";
 import bcrypt from "bcryptjs";
 
@@ -203,5 +203,15 @@ export const changePassword = async (req: any, res: any) => {
   } catch (error) {
     console.error("Error changing password:", error);
     return errorResponse(res, "backend.failed_to_change_password", 500);
+  }
+};
+
+export const getCategoriesList = async (req: any, res: any) => {
+  try {
+    const result = await Category.find(); // Added 'await' here
+    return successResponse(res, "backend.categories_found", result);
+  } catch (error) {
+    console.error("Error fetching categories:", error);
+    return errorResponse(res, "backend.failed_to_fetch_categories", 500);
   }
 };

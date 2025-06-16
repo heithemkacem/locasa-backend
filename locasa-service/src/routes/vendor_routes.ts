@@ -25,7 +25,6 @@ import {
   getOrder,
   getBrands,
   getCategories,
-  getCategoriesList,
 } from "../controllers/vendor-controller";
 
 const router = Router();
@@ -63,6 +62,7 @@ router.post(
   "/add-product",
   verifyToken,
   verifyRole("vendor"),
+  upload.array("images", 6),
   validateAddProduct,
   addProduct
 );
@@ -70,6 +70,7 @@ router.post(
   "/edit-product/:id",
   verifyToken,
   verifyRole("vendor"),
+  upload.array("images", 6),
   validateEditProduct,
   editProduct
 );
@@ -104,41 +105,7 @@ router.post(
 );
 router.get("/get-order/:id", verifyToken, verifyRole("vendor"), getOrder);
 
-// Product routes
-router.post(
-  "/add-product",
-  verifyToken,
-  verifyRole("vendor"),
-  validateAddProduct,
-  addProduct
-);
-router.post(
-  "/edit-product/:id",
-  verifyToken,
-  verifyRole("vendor"),
-  validateEditProduct,
-  editProduct
-);
-router.get("/get-products", verifyToken, verifyRole("vendor"), getProducts);
-router.get(
-  "/get-products/:brand_id",
-  verifyToken,
-  verifyRole("vendor"),
-  getProductsByBrand
-);
-router.get("/get-product/:id", verifyToken, verifyRole("vendor"), getProduct);
-router.delete(
-  "/delete-product/:id",
-  verifyToken,
-  verifyRole("vendor"),
-  deleteProduct
-);
 // Category routes
 router.get("/get-categories", verifyToken, verifyRole("vendor"), getCategories);
-router.get(
-  "/get-categories-list",
-  verifyToken,
-  verifyRole("vendor"),
-  getCategoriesList
-);
+
 export default router;
