@@ -24,8 +24,9 @@ app.use("/locasa", routes);
 
 const start = async () => {
   try {
-    await connectDB();
     await rabbitMQService.init();
+    await connectDB();
+
     console.log("RabbitMQ client initialized and listening for messages.");
   } catch (err) {
     console.error("Failed to initialize RabbitMQ client:", err);

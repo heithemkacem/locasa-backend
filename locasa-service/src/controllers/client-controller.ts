@@ -14,6 +14,7 @@ import { getPaginationOptions, paginateQuery } from "../utils/pagination";
 import { AuthedRequest } from "../types/custom/custom";
 import { errorResponse, successResponse } from "../utils";
 import { typesense } from "../services/TypeSenseClient";
+import mongoose from "mongoose";
 
 export const deleteAccount = async (req: AuthedRequest, res: Response) => {
   try {
@@ -72,18 +73,34 @@ export const getProducts = async (req: Request, res: Response) => {
 export const getBrand = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const brand = await Brand.findById(id)
-      .populate("location")
-      .populate({
-        path: "reviews",
-        populate: { path: "client", select: "name avatar" },
-      });
+    const clientId = req.user?.user_id;
+
+    const [brand, client] = await Promise.all([
+      Brand.findById(id)
+        .populate("location vendor category")
+        .populate({
+          path: "reviews",
+          populate: { path: "user", select: "name " },
+        }),
+      clientId ? Client.findById(clientId).select("favorite_brands") : null,
+    ]);
 
     if (!brand) {
       return errorResponse(res, "backend.brand_not_found", 404);
     }
 
-    return successResponse(res, "backend.brand_found", { brand });
+    const isFavorite =
+      client && Array.isArray(client.favorite_brands)
+        ? client.favorite_brands.some(
+            (favId) => favId.toString() === id.toString()
+          )
+        : false;
+    const response = {
+      brand,
+      isFavorite,
+    };
+
+    return successResponse(res, "backend.brand_found", response);
   } catch (error) {
     console.error("Error fetching brand:", error);
     return errorResponse(res, "backend.failed_to_fetch_brand", 500);
@@ -135,11 +152,12 @@ export const getBrandsWishlist = async (req: Request, res: Response) => {
     // If there are no favorites, return empty result with pagination
     if (!client.favorite_brands?.length) {
       return successResponse(res, "backend.wishlist_found", {
-        docs: [],
-        totalDocs: 0,
-        limit: paginationOptions.limit,
-        page: paginationOptions.page,
-        totalPages: 0,
+        items: [],
+        totalItems: 0,
+        currentPage: 1,
+        totalPages: 1,
+        hasNextPage: false,
+        hasPreviousPage: false,
       });
     }
 
@@ -170,11 +188,12 @@ export const getProductsWishlist = async (req: Request, res: Response) => {
     // If there are no favorites, return empty result with pagination
     if (!client.favorite_products?.length) {
       return successResponse(res, "backend.wishlist_found", {
-        docs: [],
-        totalDocs: 0,
-        limit: paginationOptions.limit,
-        page: paginationOptions.page,
-        totalPages: 0,
+        items: [],
+        totalItems: 0,
+        currentPage: 1,
+        totalPages: 1,
+        hasNextPage: false,
+        hasPreviousPage: false,
       });
     }
 
@@ -199,15 +218,24 @@ export const addToWishlist = async (req: Request, res: Response) => {
 
     const updateField =
       type === "brand" ? "favorite_brands" : "favorite_products";
+
+    // First check if item already exists in favorites
+    const existingClient = await Client.findById(clientId);
+
+    if (!existingClient) {
+      return errorResponse(res, "backend.client_not_found", 404);
+    }
+
+    const favorites = existingClient[updateField] || [];
+    if (favorites.includes(itemId)) {
+      return errorResponse(res, "backend.item_already_in_wishlist", 400);
+    }
+
     const client = await Client.findByIdAndUpdate(
       clientId,
       { $addToSet: { [updateField]: itemId } },
       { new: true }
     );
-
-    if (!client) {
-      return errorResponse(res, "backend.client_not_found", 404);
-    }
 
     return successResponse(res, "backend.item_added_to_wishlist");
   } catch (error) {
@@ -216,6 +244,60 @@ export const addToWishlist = async (req: Request, res: Response) => {
   }
 };
 
+export const removeFromWishlist = async (req: Request, res: Response) => {
+  try {
+    const clientId = req.user?.user_id;
+    const { type, itemId } = req.body;
+    console.log(type, itemId);
+
+    const updateField =
+      type === "brand" ? "favorite_brands" : "favorite_products";
+
+    // Convert itemId to ObjectId for consistent comparison
+    const objectId = new mongoose.Types.ObjectId(itemId);
+
+    // First check if item exists in favorites
+    const existingClient = await Client.findById(clientId);
+    if (!existingClient) {
+      return errorResponse(res, "backend.client_not_found", 404);
+    }
+
+    const favorites = existingClient[updateField] || [];
+    console.log("Current favorites:", favorites);
+
+    // Check if item exists using ObjectId comparison
+    if (!favorites.some((id) => id.toString() === objectId.toString())) {
+      return errorResponse(res, "backend.item_not_in_wishlist", 404);
+    }
+
+    // Remove the item using ObjectId
+    const client = await Client.findByIdAndUpdate(
+      clientId,
+      { $pull: { [updateField]: objectId } },
+      { new: true }
+    );
+
+    if (!client) {
+      return errorResponse(res, "backend.update_failed", 500);
+    }
+
+    // Verify the item was actually removed
+    const updatedFavorites = client[updateField] || [];
+    console.log("Updated favorites after removal:", updatedFavorites);
+
+    // Use toString() for proper comparison
+    if (updatedFavorites.some((id) => id.toString() === objectId.toString())) {
+      console.error("Item still exists after removal attempt");
+      return errorResponse(res, "backend.failed_to_remove_from_wishlist", 500);
+    }
+
+    console.log("Item successfully removed from wishlist");
+    return successResponse(res, "backend.item_removed_from_wishlist");
+  } catch (error) {
+    console.error("Error removing from wishlist:", error);
+    return errorResponse(res, "backend.failed_to_remove_from_wishlist", 500);
+  }
+};
 // Location Controllers
 export const addLocation = async (req: Request, res: Response) => {
   try {
@@ -290,22 +372,49 @@ export const removeLocation = async (req: Request, res: Response) => {
     return errorResponse(res, "backend.failed_to_remove_location", 500);
   }
 };
-
-// Review Controllers
 export const addReview = async (req: Request, res: Response) => {
   try {
     const clientId = req.user?.user_id;
+    const { brandId, rating, comment } = req.body;
     const reviewData = {
-      ...req.body,
-      client: clientId,
+      brand: brandId,
+      rating,
+      comment,
+      user: clientId,
     };
 
-    const review = await Review.create(reviewData);
-    await Brand.findByIdAndUpdate(reviewData.brandId, {
-      $push: { reviews: review._id },
-    });
+    const session = await mongoose.startSession();
+    session.startTransaction();
 
-    return successResponse(res, "backend.review_added", { review });
+    try {
+      // Create the review
+      const review = await Review.create([reviewData], { session });
+
+      // Calculate new average rating
+      const reviews = await Review.find({ brand: brandId }, null, { session });
+      const totalRating = reviews.reduce((sum, rev) => sum + rev.rating, 0);
+      const averageRating = totalRating / reviews.length;
+
+      // Update brand with new review and rating
+      await Brand.findByIdAndUpdate(
+        brandId,
+        {
+          $push: { reviews: review[0]._id },
+          $set: { rating: Number(averageRating.toFixed(1)) },
+        },
+        { session }
+      );
+
+      await session.commitTransaction();
+      session.endSession();
+      return successResponse(res, "backend.review_added", {
+        review: review[0],
+      });
+    } catch (error) {
+      await session.abortTransaction();
+      session.endSession();
+      throw error;
+    }
   } catch (error) {
     console.error("Error adding review:", error);
     return errorResponse(res, "backend.failed_to_add_review", 500);
@@ -318,7 +427,7 @@ export const getReviews = async (req: Request, res: Response) => {
     const paginationOptions = getPaginationOptions(req);
 
     const query = Review.find({ brandId: brand_id })
-      .populate("client", "name avatar")
+      .populate("user", "name ")
       .sort({ createdAt: -1 });
 
     const result = await paginateQuery(query, paginationOptions);

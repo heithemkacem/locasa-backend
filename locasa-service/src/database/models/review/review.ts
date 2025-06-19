@@ -4,7 +4,7 @@ export interface IReview extends Document {
   rating: number;
   comment: string;
   user: mongoose.Types.ObjectId;
-  vendor: mongoose.Types.ObjectId;
+  brand: mongoose.Types.ObjectId;
   likes: number;
   dislikes: number;
 }
@@ -24,12 +24,12 @@ const reviewSchema = new Schema<IReview>(
     },
     user: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      ref: "Client",
       required: true,
     },
-    vendor: {
+    brand: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Vendor",
+      ref: "Brand",
       required: true,
     },
     likes: {

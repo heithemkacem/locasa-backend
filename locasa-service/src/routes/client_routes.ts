@@ -26,6 +26,7 @@ import {
   smartSearch,
   getBrandsWishlist,
   getProductsWishlist,
+  removeFromWishlist,
 } from "../controllers/client-controller";
 
 const router = Router();
@@ -69,6 +70,13 @@ router.post(
   verifyRole("client"),
   validateAddToWishlist,
   addToWishlist
+);
+router.post(
+  "/remove-from-wishlist",
+  verifyToken,
+  verifyRole("client"),
+  validateAddToWishlist,
+  removeFromWishlist
 );
 
 // Notification Routes

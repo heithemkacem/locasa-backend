@@ -36,12 +36,10 @@ const clientSchema = new Schema<IClient>(
     },
     points: { type: Number, default: 0 },
     activities: [{ type: Schema.Types.Mixed }], // Accepts any type of data
-    favorite_brands: {
-      vendor: { type: mongoose.Schema.Types.ObjectId, ref: "Brand" },
-    },
-    favorite_products: {
-      product: { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
-    },
+    favorite_brands: [{ type: mongoose.Schema.Types.ObjectId, ref: "Brand" }],
+    favorite_products: [
+      { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
+    ],
     location: [{ type: mongoose.Schema.Types.ObjectId, ref: "Location" }],
     phone_number: { type: String }, // Phone number field
     phone_number_verified: { type: Boolean, default: false }, // Flag indicating whether the phone number has been verified

@@ -11,7 +11,6 @@ export interface IBrand extends Document {
   location: Types.ObjectId;
   category: Types.ObjectId;
   reviews: Types.ObjectId[];
-  reviewsCount: number;
   rating: number;
   products: Types.ObjectId[];
   orders: Types.ObjectId[];
@@ -63,10 +62,7 @@ const brandSchema = new Schema<IBrand>(
         ref: "Review",
       },
     ],
-    reviewsCount: {
-      type: Number,
-      default: 0,
-    },
+
     rating: {
       type: Number,
       default: 0,
