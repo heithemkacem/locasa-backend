@@ -14,7 +14,6 @@ import {
   getBrand,
   getBrandProducts,
   getProduct,
-  getWishlist,
   addToWishlist,
   getNotifications,
   markNotificationAsRead,
@@ -25,6 +24,8 @@ import {
   addReview,
   getReviews,
   smartSearch,
+  getBrandsWishlist,
+  getProductsWishlist,
 } from "../controllers/client-controller";
 
 const router = Router();
@@ -50,7 +51,18 @@ router.get(
 router.get("/get-product/:id", verifyToken, verifyRole("client"), getProduct);
 
 // Wishlist Routes
-router.get("/get-wishlist", verifyToken, verifyRole("client"), getWishlist);
+router.get(
+  "/get-brands-wishlist",
+  verifyToken,
+  verifyRole("client"),
+  getBrandsWishlist
+);
+router.get(
+  "/get-products-wishlist",
+  verifyToken,
+  verifyRole("client"),
+  getProductsWishlist
+);
 router.post(
   "/add-to-wishlist",
   verifyToken,

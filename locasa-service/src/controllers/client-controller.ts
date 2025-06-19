@@ -122,23 +122,76 @@ export const getProduct = async (req: Request, res: Response) => {
 };
 
 // Wishlist Controllers
-export const getWishlist = async (req: Request, res: Response) => {
+export const getBrandsWishlist = async (req: Request, res: Response) => {
   try {
     const clientId = req.user?.user_id;
-    const client = await Client.findById(clientId)
-      .populate("favorite_brands")
-      .populate("favorite_products");
+    const paginationOptions = getPaginationOptions(req);
+    const client = await Client.findById(clientId);
 
-    return successResponse(res, "backend.wishlist_found", {
-      brands: client?.favorite_brands || [],
-      products: client?.favorite_products || [],
-    });
+    if (!client) {
+      return errorResponse(res, "backend.client_not_found", 404);
+    }
+
+    // If there are no favorites, return empty result with pagination
+    if (!client.favorite_brands?.length) {
+      return successResponse(res, "backend.wishlist_found", {
+        docs: [],
+        totalDocs: 0,
+        limit: paginationOptions.limit,
+        page: paginationOptions.page,
+        totalPages: 0,
+      });
+    }
+
+    const query = Brand.find({ _id: { $in: client.favorite_brands || [] } })
+      .sort({ createdAt: -1 })
+      .select("logo name description");
+
+    const paginatedBrands = await paginateQuery(query, paginationOptions);
+
+    return successResponse(res, "backend.wishlist_found", paginatedBrands);
   } catch (error) {
     console.error("Error fetching wishlist:", error);
     return errorResponse(res, "backend.failed_to_fetch_wishlist", 500);
   }
 };
 
+// Wishlist Controllers
+export const getProductsWishlist = async (req: Request, res: Response) => {
+  try {
+    const clientId = req.user?.user_id;
+    const paginationOptions = getPaginationOptions(req);
+    const client = await Client.findById(clientId);
+
+    if (!client) {
+      return errorResponse(res, "backend.client_not_found", 404);
+    }
+
+    // If there are no favorites, return empty result with pagination
+    if (!client.favorite_products?.length) {
+      return successResponse(res, "backend.wishlist_found", {
+        docs: [],
+        totalDocs: 0,
+        limit: paginationOptions.limit,
+        page: paginationOptions.page,
+        totalPages: 0,
+      });
+    }
+
+    const query = Product.find({ _id: { $in: client.favorite_products || [] } })
+      .sort({ createdAt: -1 })
+      .select("name price images brand ")
+      .populate("brand")
+      .select("name");
+
+    const paginatedProducts = await paginateQuery(query, paginationOptions);
+
+    return successResponse(res, "backend.wishlist_found", paginatedProducts);
+  } catch (error) {
+    console.error("Error fetching wishlist:", error);
+    return errorResponse(res, "backend.failed_to_fetch_wishlist", 500);
+  }
+};
 export const addToWishlist = async (req: Request, res: Response) => {
   try {
     const clientId = req.user?.user_id;
