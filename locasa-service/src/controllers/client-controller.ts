@@ -123,21 +123,38 @@ export const getBrandProducts = async (req: Request, res: Response) => {
     return errorResponse(res, "backend.failed_to_fetch_products", 500);
   }
 };
-
 export const getProduct = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const product = await Product.findById(id).populate("brand");
+    const clientId = req.user?.user_id;
+
+    const [product, client] = await Promise.all([
+      Product.findById(id).populate("brand"),
+      clientId ? Client.findById(clientId).select("favorite_products") : null,
+    ]);
+
     if (!product) {
       return errorResponse(res, "backend.product_not_found", 404);
     }
-    return successResponse(res, "backend.product_found", { product });
+
+    const isFavorite =
+      client && Array.isArray(client.favorite_products)
+        ? client.favorite_products.some(
+            (favId) => favId.toString() === id.toString()
+          )
+        : false;
+
+    const response = {
+      product,
+      isFavorite,
+    };
+
+    return successResponse(res, "backend.product_found", response);
   } catch (error) {
     console.error("Error fetching product:", error);
     return errorResponse(res, "backend.failed_to_fetch_product", 500);
   }
 };
-
 // Wishlist Controllers
 export const getBrandsWishlist = async (req: Request, res: Response) => {
   try {
