@@ -26,7 +26,7 @@ const start = async () => {
   try {
     await rabbitMQService.init();
     await connectDB();
-
+    await syncTypeSense();
     console.log("RabbitMQ client initialized and listening for messages.");
   } catch (err) {
     console.error("Failed to initialize RabbitMQ client:", err);

@@ -495,56 +495,157 @@ export const markNotificationAsRead = async (req: Request, res: Response) => {
   }
 };
 export const smartSearch = async (req: any, res: any) => {
-  const { q, type } = req.body;
+  const { q, type } = req.query;
 
   if (!q || typeof q !== "string") {
-    return res.status(400).json({ error: "Query parameter 'q' is required." });
+    return errorResponse(res, "Query parameter 'q' is required.", 400);
   }
 
   try {
+    const paginationOptions = getPaginationOptions(req);
+    const { page = 1, limit = 10 } = paginationOptions;
+
     if (type === "brand") {
       const searchResults = await typesense
         .collections("brands")
         .documents()
         .search({
           q,
-          query_by: "name",
+          query_by: "name,description",
+          page,
+          per_page: limit,
         });
 
-      return res.json({
-        brands: searchResults.hits?.map((hit: any) => hit.document) ?? [],
-      });
+      const brands =
+        searchResults.hits?.map((hit: any) => ({
+          id: hit.document.id,
+          type: hit.document.type,
+          image: hit.document.image,
+          title: hit.document.name,
+          description: hit.document.description,
+          productCount: hit.document.productCount,
+        })) ?? [];
+
+      const totalItems = searchResults.found || 0;
+      const totalPages = Math.ceil(totalItems / limit);
+
+      const paginationResult = {
+        items: { products: [], brands },
+        totalItems,
+        currentPage: page,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPreviousPage: page > 1,
+      };
+
+      return successResponse(
+        res,
+        "backend.search_results_found",
+        paginationResult
+      );
     } else if (type === "product") {
       const searchResults = await typesense
         .collections("products")
         .documents()
         .search({
           q,
-          query_by: "name,category,brand",
+          query_by: "name,description,category,brand",
+          page,
+          per_page: limit,
         });
 
-      return res.json({
-        products: searchResults.hits?.map((hit: any) => hit.document) ?? [],
-      });
+      const products =
+        searchResults.hits?.map((hit: any) => ({
+          id: hit.document.id,
+          type: hit.document.type,
+          image: hit.document.image,
+          title: hit.document.name,
+          price: hit.document.price?.toString() || "0",
+          brand: hit.document.brand,
+        })) ?? [];
+
+      const totalItems = searchResults.found || 0;
+      const totalPages = Math.ceil(totalItems / limit);
+
+      const paginationResult = {
+        items: { products, brands: [] },
+        totalItems,
+        currentPage: page,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPreviousPage: page > 1,
+      };
+
+      return successResponse(
+        res,
+        "backend.search_results_found",
+        paginationResult
+      );
     } else {
+      // Search both brands and products
       const [brandResults, productResults] = await Promise.all([
         typesense
           .collections("brands")
           .documents()
-          .search({ q, query_by: "name" }),
+          .search({
+            q,
+            query_by: "name,description",
+            page,
+            per_page: Math.ceil(limit / 2), // Split limit between brands and products
+          }),
         typesense
           .collections("products")
           .documents()
-          .search({ q, query_by: "name,category,brand" }),
+          .search({
+            q,
+            query_by: "name,description,category,brand",
+            page,
+            per_page: Math.ceil(limit / 2),
+          }),
       ]);
 
-      return res.json({
-        brands: brandResults.hits?.map((hit: any) => hit.document) ?? [],
-        products: productResults.hits?.map((hit: any) => hit.document) ?? [],
-      });
+      const brands =
+        brandResults.hits?.map((hit: any) => ({
+          id: hit.document.id,
+          type: hit.document.type,
+          image: hit.document.image,
+          title: hit.document.name,
+          description: hit.document.description,
+          productCount: hit.document.productCount,
+        })) ?? [];
+
+      const products =
+        productResults.hits?.map((hit: any) => ({
+          id: hit.document.id,
+          type: hit.document.type,
+          image: hit.document.image,
+          title: hit.document.name,
+          price: hit.document.price?.toString() || "0",
+          brand: hit.document.brand,
+        })) ?? [];
+
+      const totalBrands = brandResults.found || 0;
+      const totalProducts = productResults.found || 0;
+      const totalItems = totalBrands + totalProducts;
+      const totalPages = Math.ceil(totalItems / limit);
+
+      const paginationResult = {
+        items: { products, brands },
+        totalItems,
+        currentPage: page,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPreviousPage: page > 1,
+      };
+
+      return successResponse(
+        res,
+        "backend.search_results_found",
+        paginationResult
+      );
     }
   } catch (err) {
     console.error("Search error:", err);
-    return res.status(500).json({ error: "Internal server error" });
+    return errorResponse(res, "backend.search_failed", 500);
   }
 };
