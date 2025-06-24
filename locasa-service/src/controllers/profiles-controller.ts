@@ -108,28 +108,20 @@ export const addToken = async (req: any, res: any) => {
     let user: any = req.user;
 
     const existingToken = await ExpoPushToken.findOne({
-      expoPushToken: expoPushToken,
+      device_id: device_id,
+      user_id: user.id,
     });
 
     if (existingToken) {
-      if (existingToken.user_id.toString() !== user.id) {
-        existingToken.user_id = user.id;
-        existingToken.type = type;
-        existingToken.device_id = device_id;
-        existingToken.device_type = device_type;
-        existingToken.notification = status;
-        existingToken.newMessage = status;
-        await existingToken.save();
-        return successResponse(res, "backend.expo_push_token_updated", {
-          token: existingToken,
-        });
-      }
-      if (status !== existingToken.notification) {
-        existingToken.notification = status;
-        existingToken.newMessage = status;
-        await existingToken.save();
-      }
-      return successResponse(res, "backend.expo_push_token_already_exists", {
+      existingToken.expoPushToken = expoPushToken;
+      existingToken.user_id = user.id;
+      existingToken.type = type;
+      existingToken.device_id = device_id;
+      existingToken.device_type = device_type;
+      existingToken.notification = status;
+      existingToken.newMessage = status;
+      await existingToken.save();
+      return successResponse(res, "backend.expo_push_token_updated", {
         token: existingToken,
       });
     }
@@ -146,7 +138,6 @@ export const addToken = async (req: any, res: any) => {
       newMessage: status,
       marketing: true,
     });
-
     await newExpoPushToken.save();
     return successResponse(res, "backend.expo_push_token_added", {
       token: newExpoPushToken,

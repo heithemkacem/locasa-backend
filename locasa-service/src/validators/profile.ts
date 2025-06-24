@@ -16,7 +16,7 @@ export const userIdValidationSchema = Joi.object({
   }),
 });
 export const requestBodyValidationSchema = Joi.object({
-  expoPushToken: Joi.string().required().messages({
+  expoPushToken: Joi.string().allow(null).required().messages({
     "string.empty": "Expo Push Token is required.",
     "any.required": "Expo Push Token is required.",
   }),

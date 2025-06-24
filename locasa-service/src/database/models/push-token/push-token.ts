@@ -1,7 +1,7 @@
 import mongoose, { Schema, Document } from "mongoose";
 
 export interface IExpoPushToken extends Document {
-  expoPushToken: string; // The Expo push token
+  expoPushToken: string | null; // The Expo push token
   type: "vendor" | "client"; // User role
   active: boolean; // Indicates if the token is active
   device_id: string; // Unique device identifier
@@ -16,7 +16,7 @@ export interface IExpoPushToken extends Document {
 
 const expoPushTokenSchema = new Schema<IExpoPushToken>(
   {
-    expoPushToken: { type: String, required: true }, // Expo push token
+    expoPushToken: { type: String }, // Expo push token
     type: {
       type: String,
       enum: ["client", "vendor"], // User roles

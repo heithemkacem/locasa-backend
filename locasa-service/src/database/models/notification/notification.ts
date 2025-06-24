@@ -8,7 +8,7 @@ export interface INotification extends Document {
   icon: string;
   data: object;
   image: String;
-  type: string;
+  type: "order" | "review" | "favorite" | "reccomendation" | "other";
   status: string;
 }
 
@@ -41,6 +41,7 @@ const notificationSchema = new Schema<INotification>(
     },
     type: {
       type: String,
+      enum: ["order", "review", "favorite", "reccomendation", "other"],
       required: true,
     },
     status: {
