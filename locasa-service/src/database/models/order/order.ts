@@ -1,7 +1,7 @@
 import mongoose, { Schema, Document, Types } from "mongoose";
 
 export interface IOrder extends Document {
-  product: Types.ObjectId; // Ref to Product
+  products: Types.ObjectId[]; // Ref to Product
   client: Types.ObjectId; // Ref to User or Client
   brand: Types.ObjectId; // Ref to Brand
   location: Types.ObjectId;
@@ -12,14 +12,16 @@ export interface IOrder extends Document {
 
 const orderSchema = new Schema<IOrder>(
   {
-    product: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Product",
-      required: true,
-    },
+    products: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Product",
+        required: true,
+      },
+    ],
     client: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User", // or "Client" depending on your model name
+      ref: "Client", // or "Client" depending on your model name
       required: true,
     },
     brand: {

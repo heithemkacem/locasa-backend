@@ -9,6 +9,7 @@ import {
   Location,
   Review,
   Notification,
+  Order,
 } from "../database";
 import { getPaginationOptions, paginateQuery } from "../utils/pagination";
 import { AuthedRequest } from "../types/custom/custom";
@@ -647,5 +648,165 @@ export const smartSearch = async (req: any, res: any) => {
   } catch (err) {
     console.error("Search error:", err);
     return errorResponse(res, "backend.search_failed", 500);
+  }
+};
+
+// Order Controllers
+export const getOrders = async (req: Request, res: Response) => {
+  try {
+    const clientId = req.user?.user_id;
+    const paginationOptions = getPaginationOptions(req);
+
+    const query = Order.find({ client: clientId })
+      .populate("products", "name price images")
+      .populate("brand", "name logo")
+      .populate("location", "address city")
+      .populate("client", "name email phone")
+      .sort({ createdAt: -1 });
+
+    const result = await paginateQuery(query, paginationOptions);
+    return successResponse(res, "backend.orders_found", result);
+  } catch (error) {
+    console.error("Error fetching orders:", error);
+    return errorResponse(res, "backend.failed_to_fetch_orders", 500);
+  }
+};
+
+export const getOrder = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const clientId = req.user?.user_id;
+
+    const order = await Order.findOne({ _id: id, client: clientId })
+      .populate("products", "name price images description")
+      .populate("brand", "name logo email phone")
+      .populate("location", "address city state zipCode")
+      .populate("client", "name email phone");
+
+    if (!order) {
+      return errorResponse(res, "backend.order_not_found", 404);
+    }
+
+    return successResponse(res, "backend.order_found", { order });
+  } catch (error) {
+    console.error("Error fetching order:", error);
+    return errorResponse(res, "backend.failed_to_fetch_order", 500);
+  }
+};
+
+export const createOrder = async (req: Request, res: Response) => {
+  try {
+    const clientId = req.user?.user_id;
+    const { products, brandId, locationId, totalPrice } = req.body;
+
+    // Validate that products array is not empty
+    if (!products || !Array.isArray(products) || products.length === 0) {
+      return errorResponse(res, "backend.order_products_required", 400);
+    }
+
+    // Validate that all products exist and belong to the same brand
+    const productDocs = await Product.find({ _id: { $in: products } }).populate(
+      "brand"
+    );
+
+    if (productDocs.length !== products.length) {
+      return errorResponse(res, "backend.some_products_not_found", 400);
+    }
+
+    // Check if all products belong to the specified brand
+    const invalidProducts = productDocs.filter(
+      (product) => product.brand._id.toString() !== brandId
+    );
+    if (invalidProducts.length > 0) {
+      return errorResponse(res, "backend.products_brand_mismatch", 400);
+    }
+
+    // Validate that the brand exists
+    const brand = await Brand.findById(brandId);
+    if (!brand) {
+      return errorResponse(res, "backend.brand_not_found", 404);
+    }
+
+    // Validate that the location exists and belongs to the client
+    const location = await Location.findOne({
+      _id: locationId,
+      profile: req.user?.id,
+    });
+    if (!location) {
+      return errorResponse(res, "backend.location_not_found", 404);
+    }
+
+    // Calculate total price from products if not provided or validate if provided
+    const calculatedTotal = productDocs.reduce(
+      (sum, product) => sum + product.price,
+      0
+    );
+    const finalTotalPrice = totalPrice || calculatedTotal;
+
+    // If totalPrice was provided, validate it matches the calculated total
+    if (totalPrice && Math.abs(totalPrice - calculatedTotal) > 0.01) {
+      return errorResponse(res, "backend.total_price_mismatch", 400);
+    }
+
+    // Create the order
+    const newOrder = new Order({
+      products,
+      client: clientId,
+      brand: brandId,
+      location: locationId,
+      totalPrice: finalTotalPrice,
+      orderStatus: "Pending",
+    });
+
+    const savedOrder = await newOrder.save();
+
+    // Populate the order with related data
+    const populatedOrder = await Order.findById(savedOrder._id)
+      .populate("products", "name price images description")
+      .populate("brand", "name logo email phone")
+      .populate("location", "address city state zipCode");
+
+    return successResponse(res, "backend.order_created", {
+      order: populatedOrder,
+    });
+  } catch (error) {
+    console.error("Error creating order:", error);
+    return errorResponse(res, "backend.failed_to_create_order", 500);
+  }
+};
+
+export const deleteOrder = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const clientId = req.user?.user_id;
+
+    // Find the order first to check if it exists and belongs to the client
+    const order = await Order.findOne({ _id: id, client: clientId });
+
+    if (!order) {
+      return errorResponse(res, "backend.order_not_found", 404);
+    }
+
+    // Check if order can be cancelled (only pending orders can be cancelled)
+    if (order.orderStatus !== "Pending") {
+      return errorResponse(res, "backend.order_cannot_be_cancelled", 400);
+    }
+
+    // Update order status to "Cancelled" instead of deleting
+    const updatedOrder = await Order.findByIdAndUpdate(
+      id,
+      { $set: { orderStatus: "Cancelled" } },
+      { new: true }
+    )
+      .populate("products", "name price images")
+      .populate("brand", "name logo")
+      .populate("location", "address city");
+
+    return successResponse(res, "backend.order_cancelled", {
+      order: updatedOrder,
+    });
+  } catch (error) {
+    console.error("Error cancelling order:", error);
+    return errorResponse(res, "backend.failed_to_cancel_order", 500);
   }
 };

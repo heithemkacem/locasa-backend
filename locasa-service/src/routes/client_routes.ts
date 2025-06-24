@@ -6,6 +6,7 @@ import {
   validateAddToWishlist,
   validateAddReview,
   validateMarkNotificationAsRead,
+  validateCreateOrder,
 } from "../middleware/client_dto";
 import {
   deleteAccount,
@@ -27,6 +28,10 @@ import {
   getBrandsWishlist,
   getProductsWishlist,
   removeFromWishlist,
+  getOrders,
+  getOrder,
+  createOrder,
+  deleteOrder,
 } from "../controllers/client-controller";
 
 const router = Router();
@@ -132,4 +137,22 @@ router.get(
   getReviews
 );
 router.get("/smart-search", verifyToken, verifyRole("client"), smartSearch);
+
+// Order Routes
+router.get("/get-orders", verifyToken, verifyRole("client"), getOrders);
+router.get("/get-order/:id", verifyToken, verifyRole("client"), getOrder);
+router.post(
+  "/create-order",
+  verifyToken,
+  verifyRole("client"),
+  validateCreateOrder,
+  createOrder
+);
+router.delete(
+  "/delete-order/:id",
+  verifyToken,
+  verifyRole("client"),
+  deleteOrder
+);
+
 export default router;

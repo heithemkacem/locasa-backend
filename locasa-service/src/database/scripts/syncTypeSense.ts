@@ -6,6 +6,13 @@ import Brand from "../models/brand/brand";
 
 export const syncTypeSense = async () => {
   try {
+    // Check if database is connected
+    if (mongoose.connection.readyState !== 1) {
+      console.warn("⚠️ Database not connected, skipping TypeSense sync");
+      return;
+    }
+
+    console.log("🔍 Starting TypeSense sync...");
     const collections = await typesense.collections().retrieve();
     const collectionNames = collections.map((col: any) => col.name);
 
@@ -87,7 +94,5 @@ export const syncTypeSense = async () => {
     console.log("✅ Synced Products & Brands to Typesense");
   } catch (err) {
     console.error("❌ Sync error", err);
-  } finally {
-    await mongoose.disconnect();
   }
 };

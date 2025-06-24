@@ -5,6 +5,7 @@ import {
   addToWishlistSchema,
   addReviewSchema,
   markNotificationAsReadSchema,
+  createOrderSchema,
 } from "../validators/client";
 
 export const validateAddLocation: RequestHandler = (req, res, next): void => {
@@ -93,6 +94,25 @@ export const validateMarkNotificationAsRead: RequestHandler = (
   next
 ): void => {
   const { error } = markNotificationAsReadSchema.validate(req.body, {
+    abortEarly: false,
+    allowUnknown: false,
+  });
+
+  if (error) {
+    console.log("Validation error:", error);
+    res.status(400).json({
+      status: "Failed",
+      message: "backend.validation_error",
+      errors: error.details.map((detail) => detail.message),
+    });
+    return;
+  }
+
+  next();
+};
+
+export const validateCreateOrder: RequestHandler = (req, res, next): void => {
+  const { error } = createOrderSchema.validate(req.body, {
     abortEarly: false,
     allowUnknown: false,
   });

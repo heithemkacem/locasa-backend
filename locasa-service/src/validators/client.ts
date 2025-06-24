@@ -119,3 +119,42 @@ export const markNotificationAsReadSchema = Joi.object({
 }).messages({
   "object.unknown": "backend.unexpected_field_detected",
 });
+
+// Order DTOs
+export const createOrderSchema = Joi.object({
+  products: Joi.array()
+    .items(
+      Joi.string()
+        .pattern(/^[0-9a-fA-F]{24}$/)
+        .messages({
+          "string.pattern.base": "backend.product_id_invalid",
+        })
+    )
+    .min(1)
+    .required()
+    .messages({
+      "array.base": "backend.order_products_must_be_array",
+      "array.min": "backend.order_products_required",
+      "any.required": "backend.order_products_required",
+    }),
+  brandId: Joi.string()
+    .pattern(/^[0-9a-fA-F]{24}$/)
+    .required()
+    .messages({
+      "string.pattern.base": "backend.brand_id_invalid",
+      "any.required": "backend.brand_id_required",
+    }),
+  locationId: Joi.string()
+    .pattern(/^[0-9a-fA-F]{24}$/)
+    .required()
+    .messages({
+      "string.pattern.base": "backend.location_id_invalid",
+      "any.required": "backend.location_id_required",
+    }),
+  totalPrice: Joi.number().min(0).optional().messages({
+    "number.base": "backend.total_price_must_be_number",
+    "number.min": "backend.total_price_must_be_positive",
+  }),
+}).messages({
+  "object.unknown": "backend.unexpected_field_detected",
+});
