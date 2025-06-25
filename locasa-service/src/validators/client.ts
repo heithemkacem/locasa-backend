@@ -124,11 +124,24 @@ export const markNotificationAsReadSchema = Joi.object({
 export const createOrderSchema = Joi.object({
   products: Joi.array()
     .items(
-      Joi.string()
-        .pattern(/^[0-9a-fA-F]{24}$/)
-        .messages({
-          "string.pattern.base": "backend.product_id_invalid",
-        })
+      Joi.object({
+        product: Joi.string()
+          .pattern(/^[0-9a-fA-F]{24}$/)
+          .required()
+          .messages({
+            "string.pattern.base": "backend.product_id_invalid",
+            "any.required": "backend.product_id_required",
+          }),
+        quantity: Joi.number().integer().min(1).max(999).required().messages({
+          "number.base": "backend.quantity_must_be_number",
+          "number.integer": "backend.quantity_must_be_integer",
+          "number.min": "backend.quantity_min",
+          "number.max": "backend.quantity_max",
+          "any.required": "backend.quantity_required",
+        }),
+      }).messages({
+        "object.unknown": "backend.unexpected_field_in_product",
+      })
     )
     .min(1)
     .required()

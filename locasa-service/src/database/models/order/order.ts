@@ -1,9 +1,9 @@
 import mongoose, { Schema, Document, Types } from "mongoose";
 
 export interface IOrder extends Document {
-  products: Types.ObjectId[]; // Ref to Product
-  client: Types.ObjectId; // Ref to User or Client
-  brand: Types.ObjectId; // Ref to Brand
+  products: { product: Types.ObjectId; quantity: number }[];
+  client: Types.ObjectId;
+  brand: Types.ObjectId;
   location: Types.ObjectId;
   orderDate: Date;
   orderStatus: "Pending" | "Shipped" | "Delivered" | "Cancelled";
@@ -14,14 +14,22 @@ const orderSchema = new Schema<IOrder>(
   {
     products: [
       {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Product",
-        required: true,
+        product: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Product",
+          required: true,
+        },
+        quantity: {
+          type: Number,
+          min: 1,
+          max: 999,
+          required: true,
+        },
       },
     ],
     client: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Client", // or "Client" depending on your model name
+      ref: "Client",
       required: true,
     },
     brand: {

@@ -501,12 +501,9 @@ export const getOrders = async (req: Request, res: Response) => {
     const paginationOptions = getPaginationOptions(req);
 
     const query = Order.find({ "brand.vendor": vendorId })
-      .populate("product")
-      .select("name")
-      .populate("client")
-      .select("name phone")
-      .populate("brand")
-      .select("name")
+      .populate("products.product", "name")
+      .populate("client", "name phone")
+      .populate("brand", "name")
       .sort({ createdAt: -1 });
 
     const result = await paginateQuery(query, paginationOptions);
@@ -541,7 +538,7 @@ export const getOrdersByBrand = async (req: Request, res: Response) => {
     }
 
     const query = Order.find({ brand: brand_id })
-      .populate("product")
+      .populate("products.product")
       .populate("client")
       .populate("brand")
       .sort({ createdAt: -1 });
@@ -565,7 +562,7 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
       { $set: { orderStatus: status } },
       { new: true }
     )
-      .populate("product")
+      .populate("products.product")
       .populate("client")
       .populate("brand");
 
@@ -586,7 +583,7 @@ export const getOrder = async (req: Request, res: Response) => {
     const vendorId = req.user?.user_id;
 
     const order = await Order.findOne({ _id: id, "brand.vendor": vendorId })
-      .populate("product")
+      .populate("products.product")
       .populate("client")
       .populate("brand")
       .populate("location");

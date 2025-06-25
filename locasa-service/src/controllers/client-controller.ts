@@ -658,7 +658,7 @@ export const getOrders = async (req: Request, res: Response) => {
     const paginationOptions = getPaginationOptions(req);
 
     const query = Order.find({ client: clientId })
-      .populate("products", "name price images")
+      .populate("products.product", "name price images")
       .populate("brand", "name logo")
       .populate("location", "address city")
       .populate("client", "name email phone")
@@ -678,7 +678,7 @@ export const getOrder = async (req: Request, res: Response) => {
     const clientId = req.user?.user_id;
 
     const order = await Order.findOne({ _id: id, client: clientId })
-      .populate("products", "name price images description")
+      .populate("products.product", "name price images description")
       .populate("brand", "name logo email phone")
       .populate("location", "address city state zipCode")
       .populate("client", "name email phone");
@@ -704,12 +704,15 @@ export const createOrder = async (req: Request, res: Response) => {
       return errorResponse(res, "backend.order_products_required", 400);
     }
 
-    // Validate that all products exist and belong to the same brand
-    const productDocs = await Product.find({ _id: { $in: products } }).populate(
-      "brand"
-    );
+    // Extract product IDs from the products array
+    const productIds = products.map((item: any) => item.product);
 
-    if (productDocs.length !== products.length) {
+    // Validate that all products exist and belong to the same brand
+    const productDocs = await Product.find({
+      _id: { $in: productIds },
+    }).populate("brand");
+
+    if (productDocs.length !== productIds.length) {
       return errorResponse(res, "backend.some_products_not_found", 400);
     }
 
@@ -736,11 +739,13 @@ export const createOrder = async (req: Request, res: Response) => {
       return errorResponse(res, "backend.location_not_found", 404);
     }
 
-    // Calculate total price from products if not provided or validate if provided
-    const calculatedTotal = productDocs.reduce(
-      (sum, product) => sum + product.price,
-      0
-    );
+    // Calculate total price from products and quantities if not provided or validate if provided
+    const calculatedTotal = products.reduce((sum: number, item: any) => {
+      const product = productDocs.find(
+        (p: any) => p._id.toString() === item.product
+      );
+      return sum + (product ? product.price * item.quantity : 0);
+    }, 0);
     const finalTotalPrice = totalPrice || calculatedTotal;
 
     // If totalPrice was provided, validate it matches the calculated total
@@ -762,7 +767,7 @@ export const createOrder = async (req: Request, res: Response) => {
 
     // Populate the order with related data
     const populatedOrder = await Order.findById(savedOrder._id)
-      .populate("products", "name price images description")
+      .populate("products.product", "name price images description")
       .populate("brand", "name logo email phone")
       .populate("location", "address city state zipCode");
 
@@ -798,7 +803,7 @@ export const deleteOrder = async (req: Request, res: Response) => {
       { $set: { orderStatus: "Cancelled" } },
       { new: true }
     )
-      .populate("products", "name price images")
+      .populate("products.product", "name price images")
       .populate("brand", "name logo")
       .populate("location", "address city");
 
