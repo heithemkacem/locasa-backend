@@ -707,39 +707,43 @@ export const createOrder = async (req: Request, res: Response) => {
     // Extract product IDs from the products array
     const productIds = products.map((item: any) => item.product);
 
-    // Validate that all products exist and belong to the same brand
-    const productDocs = await Product.find({
-      _id: { $in: productIds },
-    }).populate("brand");
+    // Perform all validations in parallel to reduce total time
+    const [productDocs, brand, location] = await Promise.all([
+      // Get products without populating brand (we'll validate brand separately)
+      Product.find({ _id: { $in: productIds } }),
+      // Validate brand exists
+      Brand.findById(brandId),
+      // Validate location exists and belongs to client
+      Location.findOne({
+        _id: locationId,
+        profile: req.user?.id,
+      }),
+    ]);
 
+    // Validate all products exist
     if (productDocs.length !== productIds.length) {
       return errorResponse(res, "backend.some_products_not_found", 400);
     }
 
+    // Validate brand exists
+    if (!brand) {
+      return errorResponse(res, "backend.brand_not_found", 404);
+    }
+
+    // Validate location exists
+    if (!location) {
+      return errorResponse(res, "backend.location_not_found", 404);
+    }
+
     // Check if all products belong to the specified brand
     const invalidProducts = productDocs.filter(
-      (product) => product.brand._id.toString() !== brandId
+      (product) => product.brand.toString() !== brandId
     );
     if (invalidProducts.length > 0) {
       return errorResponse(res, "backend.products_brand_mismatch", 400);
     }
 
-    // Validate that the brand exists
-    const brand = await Brand.findById(brandId);
-    if (!brand) {
-      return errorResponse(res, "backend.brand_not_found", 404);
-    }
-
-    // Validate that the location exists and belongs to the client
-    const location = await Location.findOne({
-      _id: locationId,
-      profile: req.user?.id,
-    });
-    if (!location) {
-      return errorResponse(res, "backend.location_not_found", 404);
-    }
-
-    // Calculate total price from products and quantities if not provided or validate if provided
+    // Calculate total price from products and quantities
     const calculatedTotal = products.reduce((sum: number, item: any) => {
       const product = productDocs.find(
         (p: any) => p._id.toString() === item.product
@@ -753,7 +757,7 @@ export const createOrder = async (req: Request, res: Response) => {
       return errorResponse(res, "backend.total_price_mismatch", 400);
     }
 
-    // Create the order
+    // Create and save the order with populated data in one operation
     const newOrder = new Order({
       products,
       client: clientId,

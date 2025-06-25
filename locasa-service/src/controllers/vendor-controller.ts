@@ -500,7 +500,25 @@ export const getOrders = async (req: Request, res: Response) => {
     const vendorId = req.user?.user_id;
     const paginationOptions = getPaginationOptions(req);
 
-    const query = Order.find({ "brand.vendor": vendorId })
+    // First, find all brands that belong to this vendor
+    const vendorBrands = await Brand.find({ vendor: vendorId }).select("_id");
+    const brandIds = vendorBrands.map((brand) => brand._id);
+
+    if (brandIds.length === 0) {
+      // If vendor has no brands, return empty result with proper pagination structure
+      const emptyResult = {
+        items: [],
+        totalItems: 0,
+        currentPage: paginationOptions.page || 1,
+        totalPages: 0,
+        hasNextPage: false,
+        hasPreviousPage: false,
+      };
+      return successResponse(res, "backend.orders_found", emptyResult);
+    }
+
+    // Find orders for the vendor's brands
+    const query = Order.find({ brand: { $in: brandIds } })
       .populate("products.product", "name")
       .populate("client", "name phone")
       .populate("brand", "name")
@@ -557,8 +575,16 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
     const { status } = req.body;
     const vendorId = req.user?.user_id;
 
+    // First, find all brands that belong to this vendor
+    const vendorBrands = await Brand.find({ vendor: vendorId }).select("_id");
+    const brandIds = vendorBrands.map((brand) => brand._id);
+
+    if (brandIds.length === 0) {
+      return errorResponse(res, "backend.order_not_found", 404);
+    }
+
     const order = await Order.findOneAndUpdate(
-      { _id: id, "brand.vendor": vendorId },
+      { _id: id, brand: { $in: brandIds } },
       { $set: { orderStatus: status } },
       { new: true }
     )
@@ -582,7 +608,15 @@ export const getOrder = async (req: Request, res: Response) => {
     const { id } = req.params;
     const vendorId = req.user?.user_id;
 
-    const order = await Order.findOne({ _id: id, "brand.vendor": vendorId })
+    // First, find all brands that belong to this vendor
+    const vendorBrands = await Brand.find({ vendor: vendorId }).select("_id");
+    const brandIds = vendorBrands.map((brand) => brand._id);
+
+    if (brandIds.length === 0) {
+      return errorResponse(res, "backend.order_not_found", 404);
+    }
+
+    const order = await Order.findOne({ _id: id, brand: { $in: brandIds } })
       .populate("products.product")
       .populate("client")
       .populate("brand")
