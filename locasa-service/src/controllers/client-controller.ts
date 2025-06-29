@@ -11,7 +11,11 @@ import {
   Notification,
   Order,
 } from "../database";
-import { getPaginationOptions, paginateQuery } from "../utils/pagination";
+import {
+  getPaginationOptions,
+  paginateArray,
+  paginateQuery,
+} from "../utils/pagination";
 import { AuthedRequest } from "../types/custom/custom";
 import { errorResponse, successResponse } from "../utils";
 import { typesense } from "../services/TypeSenseClient";
@@ -157,18 +161,21 @@ export const getProduct = async (req: Request, res: Response) => {
   }
 };
 // Wishlist Controllers
+
 export const getBrandsWishlist = async (req: Request, res: Response) => {
   try {
     const clientId = req.user?.user_id;
     const paginationOptions = getPaginationOptions(req);
-    const client = await Client.findById(clientId);
+
+    const client = await Client.findById(clientId).select("favorite_brands");
 
     if (!client) {
       return errorResponse(res, "backend.client_not_found", 404);
     }
 
-    // If there are no favorites, return empty result with pagination
-    if (!client.favorite_brands?.length) {
+    const favoriteIds = client.favorite_brands || [];
+
+    if (!favoriteIds.length) {
       return successResponse(res, "backend.wishlist_found", {
         items: [],
         totalItems: 0,
@@ -179,32 +186,38 @@ export const getBrandsWishlist = async (req: Request, res: Response) => {
       });
     }
 
-    const query = Brand.find({ _id: { $in: client.favorite_brands || [] } })
-      .sort({ createdAt: -1 })
-      .select("logo name description");
+    // Paginate the favorite brand IDs
+    const paginatedResult = paginateArray(favoriteIds, paginationOptions);
 
-    const paginatedBrands = await paginateQuery(query, paginationOptions);
+    // Fetch only the paginated brand documents
+    const brands = await Brand.find({ _id: { $in: paginatedResult.items } })
+      .select("logo name description")
+      .sort({ createdAt: -1 });
 
-    return successResponse(res, "backend.wishlist_found", paginatedBrands);
+    return successResponse(res, "backend.wishlist_found", {
+      ...paginatedResult,
+      items: brands,
+    });
   } catch (error) {
     console.error("Error fetching wishlist:", error);
     return errorResponse(res, "backend.failed_to_fetch_wishlist", 500);
   }
 };
-
-// Wishlist Controllers
 export const getProductsWishlist = async (req: Request, res: Response) => {
   try {
     const clientId = req.user?.user_id;
     const paginationOptions = getPaginationOptions(req);
-    const client = await Client.findById(clientId);
+
+    // Only select favorite_products for performance
+    const client = await Client.findById(clientId).select("favorite_products");
 
     if (!client) {
       return errorResponse(res, "backend.client_not_found", 404);
     }
 
-    // If there are no favorites, return empty result with pagination
-    if (!client.favorite_products?.length) {
+    const favoriteIds = client.favorite_products || [];
+
+    if (!favoriteIds.length) {
       return successResponse(res, "backend.wishlist_found", {
         items: [],
         totalItems: 0,
@@ -215,20 +228,25 @@ export const getProductsWishlist = async (req: Request, res: Response) => {
       });
     }
 
-    const query = Product.find({ _id: { $in: client.favorite_products || [] } })
+    // Paginate the product IDs first
+    const paginatedResult = paginateArray(favoriteIds, paginationOptions);
+
+    // Fetch only the paginated product documents
+    const products = await Product.find({ _id: { $in: paginatedResult.items } })
       .sort({ createdAt: -1 })
-      .select("name price images brand ")
-      .populate("brand")
-      .select("name");
+      .select("name price images brand")
+      .populate("brand", "name"); // Correctly populate only 'name' from brand
 
-    const paginatedProducts = await paginateQuery(query, paginationOptions);
-
-    return successResponse(res, "backend.wishlist_found", paginatedProducts);
+    return successResponse(res, "backend.wishlist_found", {
+      ...paginatedResult,
+      items: products,
+    });
   } catch (error) {
     console.error("Error fetching wishlist:", error);
     return errorResponse(res, "backend.failed_to_fetch_wishlist", 500);
   }
 };
+
 export const addToWishlist = async (req: Request, res: Response) => {
   try {
     const clientId = req.user?.user_id;
@@ -249,7 +267,7 @@ export const addToWishlist = async (req: Request, res: Response) => {
       return errorResponse(res, "backend.item_already_in_wishlist", 400);
     }
 
-    const client = await Client.findByIdAndUpdate(
+    await Client.findByIdAndUpdate(
       clientId,
       { $addToSet: { [updateField]: itemId } },
       { new: true }

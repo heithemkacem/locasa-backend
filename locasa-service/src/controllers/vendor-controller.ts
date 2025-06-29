@@ -11,6 +11,7 @@ import { s3Client } from "../config/aws";
 import { PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import config from "../config/config";
 import { rabbitMQService } from "../services/RabbitMQService";
+import { DashboardAnalytics } from "../types/dashboard";
 
 // Brand Controllers
 export const addBrand = async (req: Request, res: Response) => {
@@ -542,6 +543,303 @@ export const getCategories = async (req: Request, res: Response) => {
   } catch (error) {
     console.error("Error fetching categories:", error);
     return errorResponse(res, "backend.failed_to_fetch_categories", 500);
+  }
+};
+
+// Dashboard Analytics Controller
+export const getDashboardAnalytics = async (req: Request, res: Response) => {
+  try {
+    const vendorId = req.user?.user_id;
+
+    // First, find all brands that belong to this vendor
+    const vendorBrands = await Brand.find({ vendor: vendorId }).select("_id");
+    const brandIds = vendorBrands.map((brand) => brand._id);
+
+    if (brandIds.length === 0) {
+      // If vendor has no brands, return empty analytics
+      const emptyAnalytics = {
+        overviewMetrics: {
+          totalOrders: 0,
+          delivered: 0,
+          pending: 0,
+        },
+        monthlyOrdersData: [],
+        orderStatusData: [],
+        deliveredOrdersData: [],
+        mostOrderedProductsData: [],
+        orderStatistics: {
+          completedOrders: 0,
+          cancelledOrders: 0,
+        },
+        productPerformance: [],
+        customerEngagement: {
+          activeCustomers: 0,
+          newCustomers: 0,
+        },
+      };
+      return successResponse(
+        res,
+        "backend.dashboard_analytics_found",
+        emptyAnalytics
+      );
+    }
+
+    // Get current date and calculate date ranges
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+    const sixMonthsAgo = new Date(currentYear, currentMonth - 5, 1);
+
+    // 1. Overview Metrics
+    const totalOrdersCount = await Order.countDocuments({
+      brand: { $in: brandIds },
+    });
+    const deliveredOrdersCount = await Order.countDocuments({
+      brand: { $in: brandIds },
+      orderStatus: "Delivered",
+    });
+    const pendingOrdersCount = await Order.countDocuments({
+      brand: { $in: brandIds },
+      orderStatus: "Pending",
+    });
+
+    // Calculate percentage changes (mock data for now - you can implement actual comparison logic)
+    const overviewMetrics = {
+      totalOrders: totalOrdersCount,
+      delivered: deliveredOrdersCount,
+      pending: pendingOrdersCount,
+    };
+
+    // 2. Monthly Orders Data (last 6 months)
+    const monthlyOrdersAggregation = await Order.aggregate([
+      {
+        $match: {
+          brand: { $in: brandIds },
+          createdAt: { $gte: sixMonthsAgo },
+        },
+      },
+      {
+        $group: {
+          _id: {
+            year: { $year: "$createdAt" },
+            month: { $month: "$createdAt" },
+          },
+          count: { $sum: 1 },
+        },
+      },
+      {
+        $sort: { "_id.year": 1, "_id.month": 1 },
+      },
+    ]);
+
+    // Format monthly data
+    const monthNames = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
+    const monthlyOrdersData = [];
+
+    for (let i = 5; i >= 0; i--) {
+      const date = new Date(currentYear, currentMonth - i, 1);
+      const monthData = monthlyOrdersAggregation.find(
+        (item) =>
+          item._id.year === date.getFullYear() &&
+          item._id.month === date.getMonth() + 1
+      );
+
+      monthlyOrdersData.push({
+        value: monthData ? monthData.count : 0,
+        label: monthNames[date.getMonth()],
+      });
+    }
+
+    // 3. Order Status Distribution
+    const orderStatusAggregation = await Order.aggregate([
+      {
+        $match: { brand: { $in: brandIds } },
+      },
+      {
+        $group: {
+          _id: "$orderStatus",
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    const statusColors = {
+      Delivered: "#4CAF50",
+      Accepted: "#2196F3",
+      Pending: "#FF9800",
+      Cancelled: "#F44336",
+    };
+
+    const orderStatusData = orderStatusAggregation.map((status) => ({
+      value: status.count,
+      color: statusColors[status._id as keyof typeof statusColors] || "#9E9E9E",
+      text: status.count.toString(),
+      label: status._id,
+    }));
+
+    // 4. Delivered Orders Monthly (last 6 months)
+    const deliveredOrdersAggregation = await Order.aggregate([
+      {
+        $match: {
+          brand: { $in: brandIds },
+          orderStatus: "Delivered",
+          createdAt: { $gte: sixMonthsAgo },
+        },
+      },
+      {
+        $group: {
+          _id: {
+            year: { $year: "$createdAt" },
+            month: { $month: "$createdAt" },
+          },
+          count: { $sum: 1 },
+        },
+      },
+      {
+        $sort: { "_id.year": 1, "_id.month": 1 },
+      },
+    ]);
+
+    const deliveredOrdersData = [];
+    for (let i = 5; i >= 0; i--) {
+      const date = new Date(currentYear, currentMonth - i, 1);
+      const monthData = deliveredOrdersAggregation.find(
+        (item) =>
+          item._id.year === date.getFullYear() &&
+          item._id.month === date.getMonth() + 1
+      );
+
+      deliveredOrdersData.push({
+        value: monthData ? monthData.count : 0,
+        label: monthNames[date.getMonth()],
+        frontColor: "#4CAF50",
+      });
+    }
+
+    // 5. Most Ordered Products (Top 5)
+    const mostOrderedProductsAggregation = await Order.aggregate([
+      {
+        $match: { brand: { $in: brandIds } },
+      },
+      {
+        $unwind: "$products",
+      },
+      {
+        $group: {
+          _id: "$products.product",
+          totalQuantity: { $sum: "$products.quantity" },
+          orderCount: { $sum: 1 },
+        },
+      },
+      {
+        $lookup: {
+          from: "products",
+          localField: "_id",
+          foreignField: "_id",
+          as: "productInfo",
+        },
+      },
+      {
+        $unwind: "$productInfo",
+      },
+      {
+        $sort: { totalQuantity: -1 },
+      },
+      {
+        $limit: 5,
+      },
+    ]);
+
+    const productColors = [
+      "#4CAF50",
+      "#2196F3",
+      "#FF9800",
+      "#9C27B0",
+      "#FF5722",
+    ];
+    const mostOrderedProductsData = mostOrderedProductsAggregation.map(
+      (product, index) => ({
+        value: product.totalQuantity,
+        label: product.productInfo.name,
+        frontColor: productColors[index] || "#9E9E9E",
+      })
+    );
+
+    // 6. Order Statistics
+    const completedOrdersCount = await Order.countDocuments({
+      brand: { $in: brandIds },
+      orderStatus: "Delivered",
+    });
+    const cancelledOrdersCount = await Order.countDocuments({
+      brand: { $in: brandIds },
+      orderStatus: "Cancelled",
+    });
+
+    const orderStatistics = {
+      completedOrders: completedOrdersCount,
+      cancelledOrders: cancelledOrdersCount,
+    };
+
+    // 7. Product Performance (Top 3 products with sales data)
+    const productPerformanceData = mostOrderedProductsAggregation
+      .slice(0, 3)
+      .map((product, index) => ({
+        name: product.productInfo.name,
+        sales: `${product.totalQuantity} Units sold`,
+        color: productColors[index] || "#9E9E9E",
+      }));
+
+    // 8. Customer Engagement
+    const uniqueCustomersCount = await Order.distinct("client", {
+      brand: { $in: brandIds },
+    });
+    const newCustomersThisMonth = await Order.distinct("client", {
+      brand: { $in: brandIds },
+      createdAt: { $gte: new Date(currentYear, currentMonth, 1) },
+    });
+
+    const customerEngagement = {
+      activeCustomers: uniqueCustomersCount.length,
+      newCustomers: newCustomersThisMonth.length,
+    };
+
+    // Compile all analytics data
+    const dashboardAnalytics: DashboardAnalytics = {
+      overviewMetrics,
+      monthlyOrdersData,
+      orderStatusData,
+      deliveredOrdersData,
+      mostOrderedProductsData,
+      orderStatistics,
+      productPerformance: productPerformanceData,
+      customerEngagement,
+    };
+
+    return successResponse(
+      res,
+      "backend.dashboard_analytics_found",
+      dashboardAnalytics
+    );
+  } catch (error) {
+    console.error("Error fetching dashboard analytics:", error);
+    return errorResponse(
+      res,
+      "backend.failed_to_fetch_dashboard_analytics",
+      500
+    );
   }
 };
 export const getOrdersByBrand = async (req: Request, res: Response) => {

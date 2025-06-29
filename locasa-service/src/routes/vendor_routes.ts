@@ -25,6 +25,7 @@ import {
   getOrder,
   getBrands,
   getCategories,
+  getDashboardAnalytics,
 } from "../controllers/vendor-controller";
 
 const router = Router();
@@ -107,5 +108,13 @@ router.get("/get-order/:id", verifyToken, verifyRole("vendor"), getOrder);
 
 // Category routes
 router.get("/get-categories", verifyToken, verifyRole("vendor"), getCategories);
+
+// Dashboard Analytics route
+router.get(
+  "/dashboard-analytics",
+  verifyToken,
+  verifyRole("vendor"),
+  getDashboardAnalytics
+);
 
 export default router;

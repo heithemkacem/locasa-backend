@@ -6,7 +6,7 @@ export interface IOrder extends Document {
   brand: Types.ObjectId;
   location: Types.ObjectId;
   orderDate: Date;
-  orderStatus: "Pending" | "Shipped" | "Delivered" | "Cancelled";
+  orderStatus: "Pending" | "Accepted" | "Delivered" | "Cancelled";
   totalPrice: number;
 }
 
@@ -48,7 +48,7 @@ const orderSchema = new Schema<IOrder>(
     },
     orderStatus: {
       type: String,
-      enum: ["Pending", "Shipped", "Delivered", "Cancelled"],
+      enum: ["Pending", "Accepted", "Delivered", "Cancelled"],
       default: "Pending",
     },
     totalPrice: {

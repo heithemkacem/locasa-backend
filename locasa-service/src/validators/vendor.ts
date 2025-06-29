@@ -180,7 +180,7 @@ export const editProductSchema = Joi.object({
 // Order DTO
 export const updateOrderStatusSchema = Joi.object({
   status: Joi.string()
-    .valid("Pending", "Shipped", "Delivered", "Cancelled")
+    .valid("Pending", "Accepted", "Delivered", "Cancelled")
     .required()
     .messages({
       "any.only": "backend.order_status_invalid",
