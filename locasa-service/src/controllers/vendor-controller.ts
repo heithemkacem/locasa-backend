@@ -204,6 +204,7 @@ export const getBrand = async (req: Request, res: Response) => {
     const brand = await Brand.findOne({ _id: id, vendor: vendorId })
       .populate("products")
       .populate("location")
+      .populate("reviews")
       .populate("category");
 
     if (!brand) {
